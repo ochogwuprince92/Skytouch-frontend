@@ -1,4 +1,4 @@
-# skytouch frontend
+# Skytouch Frontend
 
 Skytouch Jobs platform frontend built with React and Vite.
 
