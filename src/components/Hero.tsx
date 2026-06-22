@@ -36,7 +36,7 @@ export function Hero() {
             </h1>
 
             <p className="text-lg sm:text-xl text-slate-600 mb-10 leading-relaxed max-w-xl">
-              Skytouch Jobs is the definitive marketplace for enterprise teams.
+              SkyTouch Jobs is the definitive marketplace for enterprise teams.
               Discover vetted talent, automate your pipeline, and close
               candidates faster.
             </p>

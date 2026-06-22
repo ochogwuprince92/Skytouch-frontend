@@ -1,35 +1,36 @@
-import React, { useEffect, useState } from 'react';
-import { Outlet, Link } from 'react-router-dom';
-import { Briefcase, Quote } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useEffect, useState } from 'react'
+import { Outlet, Link } from 'react-router-dom'
+import { Quote } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { LogoMark } from '../components/LogoMark'
 const testimonials = [
-{
-  quote:
-  'Skytouch Jobs transformed how we hire. We scaled our engineering team across three continents in just six months.',
-  author: 'Sarah Jenkins',
-  role: 'VP of Talent, TechNova'
-},
-{
-  quote:
-  'The AI resume parsing and automated scheduling saved our recruiting team over 20 hours a week.',
-  author: 'Michael Chen',
-  role: 'Head of HR, ScaleUp Inc'
-},
-{
-  quote:
-  'As a job seeker, the platform was incredibly intuitive. I found my dream role within two weeks of signing up.',
-  author: 'Aisha Patel',
-  role: 'Senior Product Manager'
-}];
-
+  {
+    quote:
+      'Skytouch Jobs transformed how we hire. We scaled our engineering team across three continents in just six months.',
+    author: 'Sarah Jenkins',
+    role: 'VP of Talent, TechNova',
+  },
+  {
+    quote:
+      'The AI resume parsing and automated scheduling saved our recruiting team over 20 hours a week.',
+    author: 'Michael Chen',
+    role: 'Head of HR, ScaleUp Inc',
+  },
+  {
+    quote:
+      'As a job seeker, the platform was incredibly intuitive. I found my dream role within two weeks of signing up.',
+    author: 'Aisha Patel',
+    role: 'Senior Product Manager',
+  },
+]
 export function AuthLayout() {
-  const [currentTestimonial, setCurrentTestimonial] = useState(0);
+  const [currentTestimonial, setCurrentTestimonial] = useState(0)
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, []);
+      setCurrentTestimonial((prev) => (prev + 1) % testimonials.length)
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [])
   return (
     <div className="min-h-screen bg-background flex">
       {/* Left Panel - Branding (Hidden on mobile) */}
@@ -40,9 +41,7 @@ export function AuthLayout() {
 
         <div className="relative z-10">
           <Link to="/" className="flex items-center gap-2 cursor-pointer w-fit">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-primary shadow-soft">
-              <Briefcase size={24} strokeWidth={2.5} />
-            </div>
+            <LogoMark className="w-10 h-10 rounded-xl" />
             <span className="text-2xl font-bold text-white tracking-tight">
               Skytouch<span className="text-primary-300">Jobs</span>
             </span>
@@ -57,21 +56,21 @@ export function AuthLayout() {
                 key={currentTestimonial}
                 initial={{
                   opacity: 0,
-                  y: 20
+                  y: 20,
                 }}
                 animate={{
                   opacity: 1,
-                  y: 0
+                  y: 0,
                 }}
                 exit={{
                   opacity: 0,
-                  y: -20
+                  y: -20,
                 }}
                 transition={{
-                  duration: 0.5
+                  duration: 0.5,
                 }}
-                className="absolute inset-0">
-                
+                className="absolute inset-0"
+              >
                 <p className="text-2xl font-medium text-white leading-relaxed mb-6">
                   "{testimonials[currentTestimonial].quote}"
                 </p>
@@ -88,14 +87,14 @@ export function AuthLayout() {
           </div>
 
           <div className="flex gap-2 mt-8">
-            {testimonials.map((_, idx) =>
-            <button
-              key={idx}
-              onClick={() => setCurrentTestimonial(idx)}
-              className={`w-2 h-2 rounded-full transition-all ${idx === currentTestimonial ? 'bg-white w-6' : 'bg-primary-600 hover:bg-primary-400'}`}
-              aria-label={`Go to testimonial ${idx + 1}`} />
-
-            )}
+            {testimonials.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentTestimonial(idx)}
+                className={`w-2 h-2 rounded-full transition-all ${idx === currentTestimonial ? 'bg-white w-6' : 'bg-primary-600 hover:bg-primary-400'}`}
+                aria-label={`Go to testimonial ${idx + 1}`}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -105,9 +104,7 @@ export function AuthLayout() {
         {/* Mobile Logo */}
         <div className="lg:hidden absolute top-6 left-6">
           <Link to="/" className="flex items-center gap-2 cursor-pointer">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-soft">
-              <Briefcase size={20} strokeWidth={2.5} />
-            </div>
+            <LogoMark className="w-8 h-8 rounded-lg" />
             <span className="text-xl font-bold text-slate-900 tracking-tight">
               Skytouch<span className="text-primary">Jobs</span>
             </span>
@@ -118,6 +115,6 @@ export function AuthLayout() {
           <Outlet />
         </div>
       </div>
-    </div>);
-
+    </div>
+  )
 }

@@ -51,7 +51,7 @@ export function FeaturedJobs() {
             </h2>
             <p className="text-lg text-slate-600">
               Discover your next career move with top companies actively hiring
-              on Skytouch Jobs.
+              on SkyTouch Jobs.
             </p>
           </div>
           <Link
