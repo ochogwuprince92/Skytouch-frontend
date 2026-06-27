@@ -93,7 +93,7 @@ export function SeekerLayout() {
           >
             <LogoMark className="w-8 h-8 rounded-lg" />
             <span className="text-xl font-bold text-white tracking-tight">
-              Skytouch<span className="text-slate-500 font-medium">Jobs</span>
+              SkyTouch<span className="text-slate-500 font-medium">Jobs</span>
             </span>
           </Link>
           <button

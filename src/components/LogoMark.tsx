@@ -1,4 +1,3 @@
-import React from 'react';
 import LOGO_URL from '../assets/Skytouch_Logo.jpg';
 type LogoMarkProps = {
   /** Wrapper sizing + rounding classes, e.g. "w-8 h-8 rounded-lg" */

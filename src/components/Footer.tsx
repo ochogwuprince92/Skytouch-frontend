@@ -1,4 +1,3 @@
-import React from 'react'
 import { Link } from 'react-router-dom'
 import { LogoMark } from './LogoMark'
 export function Footer() {
@@ -143,7 +142,7 @@ export function Footer() {
 
         <div className="border-t border-slate-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-500">
           <p>
-            © {new Date().getFullYear()} Skytouch Jobs. All rights reserved.
+            © {new Date().getFullYear()} SkyTouch Jobs. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <a href="#" className="hover:text-slate-900 transition-colors">

@@ -6,7 +6,7 @@ import { LogoMark } from '../components/LogoMark'
 const testimonials = [
   {
     quote:
-      'Skytouch Jobs transformed how we hire. We scaled our engineering team across three continents in just six months.',
+      'SkyTouch Jobs transformed how we hire. We scaled our engineering team across three continents in just six months.',
     author: 'Sarah Jenkins',
     role: 'VP of Talent, TechNova',
   },
@@ -43,7 +43,7 @@ export function AuthLayout() {
           <Link to="/" className="flex items-center gap-2 cursor-pointer w-fit">
             <LogoMark className="w-10 h-10 rounded-xl" />
             <span className="text-2xl font-bold text-white tracking-tight">
-              Skytouch<span className="text-primary-300">Jobs</span>
+              SkyTouch<span className="text-primary-300">Jobs</span>
             </span>
           </Link>
         </div>
@@ -106,7 +106,7 @@ export function AuthLayout() {
           <Link to="/" className="flex items-center gap-2 cursor-pointer">
             <LogoMark className="w-8 h-8 rounded-lg" />
             <span className="text-xl font-bold text-slate-900 tracking-tight">
-              Skytouch<span className="text-primary">Jobs</span>
+              SkyTouch<span className="text-primary">Jobs</span>
             </span>
           </Link>
         </div>

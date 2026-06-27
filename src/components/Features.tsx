@@ -1,10 +1,8 @@
-import React from 'react';
 import {
   LayoutDashboard,
   Zap,
   Users,
   BarChart3,
-  Shield,
   CheckCircle2,
   ArrowRight } from
 'lucide-react';
