@@ -1,7 +1,19 @@
-import React, { useState } from 'react';
-import { Settings, Shield, Globe, Mail, Bell } from 'lucide-react';
+import { useState } from 'react';
+import { Settings, Shield, Globe, Mail, Bell, Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { FormAlert } from '../../components/FormAlert';
+import { ApiError } from '../../lib/api';
+import {
+  expireStaleOffers,
+  runJobAlertDigest,
+} from '../../services/adminService';
+
 export function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState('general');
+  const [opsMessage, setOpsMessage] = useState<string | null>(null);
+  const [opsError, setOpsError] = useState<string | null>(null);
+  const [isRunningDigest, setIsRunningDigest] = useState(false);
+  const [isExpiringOffers, setIsExpiringOffers] = useState(false);
   const tabs = [
   {
     id: 'general',
@@ -28,6 +40,40 @@ export function AdminSettingsPage() {
     label: 'Advanced',
     icon: <Settings size={18} />
   }];
+
+  const handleRunDigest = async () => {
+    setOpsError(null);
+    setOpsMessage(null);
+    setIsRunningDigest(true);
+    try {
+      const result = await runJobAlertDigest();
+      setOpsMessage(
+        `Digest complete: ${result.seekersNotified ?? 0} seekers notified, ${result.jobsIncluded ?? 0} jobs included.`,
+      );
+    } catch (err) {
+      setOpsError(
+        err instanceof ApiError ? err.message : 'Failed to run job alert digest.',
+      );
+    } finally {
+      setIsRunningDigest(false);
+    }
+  };
+
+  const handleExpireOffers = async () => {
+    setOpsError(null);
+    setOpsMessage(null);
+    setIsExpiringOffers(true);
+    try {
+      const result = await expireStaleOffers();
+      setOpsMessage(`Expired ${result.offersExpired ?? 0} stale offers.`);
+    } catch (err) {
+      setOpsError(
+        err instanceof ApiError ? err.message : 'Failed to expire stale offers.',
+      );
+    } finally {
+      setIsExpiringOffers(false);
+    }
+  };
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -153,38 +199,50 @@ export function AdminSettingsPage() {
           {activeTab === 'advanced' &&
           <div className="bg-white rounded-2xl shadow-soft border border-slate-200 p-6">
               <h2 className="text-lg font-bold text-slate-900 mb-6">
-                Advanced Settings
+                Platform operations
               </h2>
 
-              <div className="space-y-6">
-                <div className="p-4 border border-warning/30 bg-warning/5 rounded-xl">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-bold text-slate-900">
-                        Maintenance Mode
-                      </h4>
-                      <p className="text-sm text-slate-600">
-                        Disable access for all non-admin users. Show maintenance
-                        page.
-                      </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input type="checkbox" className="sr-only peer" />
-                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-warning"></div>
-                    </label>
-                  </div>
+              {opsError && (
+                <div className="mb-4">
+                  <FormAlert message={opsError} />
                 </div>
+              )}
+              {opsMessage && (
+                <div className="mb-4">
+                  <FormAlert message={opsMessage} variant="success" />
+                </div>
+              )}
 
-                <div className="p-4 border border-danger/30 bg-danger/5 rounded-xl">
-                  <h4 className="font-bold text-danger mb-2">
-                    Clear System Cache
+              <div className="space-y-4">
+                <div className="p-4 border border-slate-200 rounded-xl">
+                  <h4 className="font-bold text-slate-900 mb-1">
+                    Run job alert digest
                   </h4>
                   <p className="text-sm text-slate-600 mb-4">
-                    Force clear all Redis caches. This may temporarily slow down
-                    the platform.
+                    Send digest notifications to seekers with active job alerts.
                   </p>
-                  <button className="bg-white border border-danger text-danger px-4 py-2 rounded-xl text-sm font-bold hover:bg-danger-50 transition-colors">
-                    Clear Cache Now
+                  <button
+                    type="button"
+                    onClick={() => void handleRunDigest()}
+                    disabled={isRunningDigest}
+                    className="bg-danger text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-danger-600 disabled:opacity-60">
+                    {isRunningDigest ? 'Running…' : 'Run digest'}
+                  </button>
+                </div>
+
+                <div className="p-4 border border-slate-200 rounded-xl">
+                  <h4 className="font-bold text-slate-900 mb-1">
+                    Expire stale offers
+                  </h4>
+                  <p className="text-sm text-slate-600 mb-4">
+                    Mark past-due pending offers as expired.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => void handleExpireOffers()}
+                    disabled={isExpiringOffers}
+                    className="bg-white border border-danger text-danger px-4 py-2 rounded-xl text-sm font-bold hover:bg-danger-50 disabled:opacity-60">
+                    {isExpiringOffers ? 'Processing…' : 'Expire stale offers'}
                   </button>
                 </div>
               </div>
@@ -192,7 +250,24 @@ export function AdminSettingsPage() {
           }
 
           {/* Placeholders for other tabs */}
-          {['security', 'email', 'notifications'].includes(activeTab) &&
+          {activeTab === 'security' && (
+            <div className="bg-white rounded-2xl shadow-soft border border-slate-200 p-6">
+              <h2 className="text-lg font-bold text-slate-900 mb-2">
+                Your admin account
+              </h2>
+              <p className="text-sm text-slate-500 mb-6">
+                Change your password or deactivate your personal admin account.
+              </p>
+              <Link
+                to="/settings/account"
+                className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary-600">
+                <Lock size={16} />
+                Manage account security
+              </Link>
+            </div>
+          )}
+
+          {['email', 'notifications'].includes(activeTab) &&
           <div className="bg-white rounded-2xl shadow-soft border border-slate-200 p-6 flex flex-col items-center justify-center h-64 text-slate-500">
               <Settings size={48} className="mb-4 opacity-20" />
               <p>Settings panel for {activeTab} is under construction.</p>

@@ -6,8 +6,8 @@ import {
   User,
   FileText,
   Bookmark,
-  MessageSquare,
   Bell,
+  MessageSquare,
   Settings,
   LogOut,
   Menu,
@@ -15,7 +15,12 @@ import {
   Search } from
 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+import { useLogout } from '../hooks/useLogout';
+import { NotificationBell } from '../components/NotificationBell';
 export function SeekerLayout() {
+  const { user } = useAuth();
+  const handleLogout = useLogout();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const location = useLocation();
   // Close drawer on navigation
@@ -44,10 +49,14 @@ export function SeekerLayout() {
     icon: <Bookmark size={20} />
   },
   {
+    name: 'Job Alerts',
+    path: '/seeker/alerts',
+    icon: <Bell size={20} />
+  },
+  {
     name: 'Messages',
     path: '/seeker/messages',
-    icon: <MessageSquare size={20} />,
-    badge: 3
+    icon: <MessageSquare size={20} />
   },
   {
     name: 'Settings',
@@ -130,7 +139,10 @@ export function SeekerLayout() {
         </nav>
 
         <div className="p-4 border-t border-slate-800">
-          <button className="flex items-center gap-3 px-4 py-3 w-full rounded-xl font-medium text-slate-400 hover:bg-slate-800 hover:text-danger transition-colors">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl font-medium text-slate-400 hover:bg-slate-800 hover:text-danger transition-colors">
             <LogOut size={20} />
             Log out
           </button>
@@ -160,23 +172,19 @@ export function SeekerLayout() {
           </div>
 
           <div className="flex items-center gap-4 sm:gap-6">
-            <button
-              className="relative text-slate-500 hover:text-slate-700 transition-colors"
-              aria-label="Notifications">
-              
-              <Bell size={22} />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-danger rounded-full border-2 border-white"></span>
-            </button>
-            <div className="flex items-center gap-3 cursor-pointer">
+            <NotificationBell
+              resolveApplicationHref={(id) => `/seeker/applications/${id}`}
+            />
+            <div className="flex items-center gap-3">
               <div className="hidden sm:block text-right">
-                <p className="text-sm font-bold text-slate-900">John Doe</p>
-                <p className="text-xs text-slate-500">Product Designer</p>
+                <p className="text-sm font-bold text-slate-900">
+                  {user?.email.split('@')[0] ?? 'User'}
+                </p>
+                <p className="text-xs text-slate-500">Job seeker</p>
               </div>
-              <img
-                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80"
-                alt="Profile"
-                className="w-10 h-10 rounded-full border-2 border-slate-200" />
-              
+              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">
+                {(user?.email?.[0] ?? 'U').toUpperCase()}
+              </div>
             </div>
           </div>
         </header>

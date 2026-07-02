@@ -71,7 +71,7 @@ export function Footer() {
             <ul className="space-y-4 text-sm">
               <li>
                 <Link
-                  to="/auth/register?role=employer"
+                  to="/register?role=employer"
                   className="text-slate-500 hover:text-slate-900 transition-colors">
                   
                   Post a Job

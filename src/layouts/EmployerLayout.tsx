@@ -12,13 +12,26 @@ import {
   Menu,
   X,
   Search,
-  Bell,
   Plus } from
 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { NotificationBell } from '../components/NotificationBell';
+import { useAuth } from '../context/AuthContext';
+import { getMyEmployerProfile } from '../services/employerService';
+import { useLogout } from '../hooks/useLogout';
+
 export function EmployerLayout() {
+  const { user } = useAuth();
+  const handleLogout = useLogout();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [companyLabel, setCompanyLabel] = useState('Employer');
   const location = useLocation();
+
+  useEffect(() => {
+    void getMyEmployerProfile()
+      .then((p) => setCompanyLabel(p.companyName ?? 'Employer'))
+      .catch(() => undefined);
+  }, []);
   useEffect(() => {
     setIsDrawerOpen(false);
   }, [location.pathname]);
@@ -36,8 +49,7 @@ export function EmployerLayout() {
   {
     name: 'Candidates (ATS)',
     path: '/employer/ats',
-    icon: <Users size={20} />,
-    badge: 12
+    icon: <Users size={20} />
   },
   {
     name: 'Company Profile',
@@ -109,9 +121,11 @@ export function EmployerLayout() {
         </div>
 
         <div className="p-4">
-          <button className="w-full bg-primary hover:bg-primary-600 text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-soft flex items-center justify-center gap-2">
-            <Plus size={18} /> Post a Job
-          </button>
+          <Link
+            to="/employer/jobs"
+            className="w-full bg-primary hover:bg-primary-600 text-white px-4 py-2.5 rounded-xl font-bold transition-all shadow-soft flex items-center justify-center gap-2">
+            <Plus size={18} /> Post a job
+          </Link>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-2 px-4 space-y-1">
@@ -138,7 +152,10 @@ export function EmployerLayout() {
         </nav>
 
         <div className="p-4 border-t border-slate-800">
-          <button className="flex items-center gap-3 px-4 py-3 w-full rounded-xl font-medium text-slate-400 hover:bg-slate-800 hover:text-danger transition-colors">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl font-medium text-slate-400 hover:bg-slate-800 hover:text-danger transition-colors">
             <LogOut size={20} />
             Log out
           </button>
@@ -168,20 +185,14 @@ export function EmployerLayout() {
           </div>
 
           <div className="flex items-center gap-4 sm:gap-6">
-            <button
-              className="relative text-slate-500 hover:text-slate-700 transition-colors"
-              aria-label="Notifications">
-              
-              <Bell size={22} />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-danger rounded-full border-2 border-white"></span>
-            </button>
-            <div className="flex items-center gap-3 cursor-pointer pl-4 border-l border-slate-200">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
-                TN
+            <NotificationBell resolveApplicationHref={() => '/employer/ats'} />
+            <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                {companyLabel.charAt(0).toUpperCase()}
               </div>
               <div className="hidden sm:block">
-                <p className="text-sm font-bold text-slate-900">TechNova</p>
-                <p className="text-xs text-slate-500">Employer Account</p>
+                <p className="text-sm font-bold text-slate-900">{companyLabel}</p>
+                <p className="text-xs text-slate-500">{user?.email}</p>
               </div>
             </div>
           </div>

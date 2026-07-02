@@ -70,13 +70,13 @@ export function Navbar() {
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
             <Link
-              to="/auth/login"
+              to="/login"
               className="text-sm font-semibold text-slate-600 hover:text-slate-900 px-4 py-2 transition-colors">
               
               Log in
             </Link>
             <Link
-              to="/auth/register?role=employer"
+              to="/register?role=employer"
               className="bg-slate-900 hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-sm">
               
               Post a Job
@@ -132,13 +132,13 @@ export function Navbar() {
               </Link>
               <hr className="border-slate-100" />
               <Link
-              to="/auth/login"
+              to="/login"
               className="text-lg font-semibold text-slate-600">
               
                 Log in
               </Link>
               <Link
-              to="/auth/register?role=employer"
+              to="/register?role=employer"
               className="bg-slate-900 text-white p-4 rounded-xl font-semibold text-center block">
               
                 Post a Job

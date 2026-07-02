@@ -12,11 +12,15 @@ import {
   LogOut,
   Menu,
   X,
-  Search,
-  Bell } from
+  Search } from
 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
+import { useLogout } from '../hooks/useLogout';
+import { NotificationBell } from '../components/NotificationBell';
 export function AdminLayout() {
+  const { user } = useAuth();
+  const handleLogout = useLogout();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const location = useLocation();
   useEffect(() => {
@@ -36,8 +40,7 @@ export function AdminLayout() {
   {
     name: 'Employers',
     path: '/admin/employers',
-    icon: <Building2 size={20} />,
-    badge: 5
+    icon: <Building2 size={20} />
   },
   {
     name: 'Jobs Moderation',
@@ -132,7 +135,10 @@ export function AdminLayout() {
         </nav>
 
         <div className="p-4 border-t border-slate-800">
-          <button className="flex items-center gap-3 px-4 py-3 w-full rounded-xl font-medium text-slate-400 hover:bg-slate-800 hover:text-danger transition-colors">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl font-medium text-slate-400 hover:bg-slate-800 hover:text-danger transition-colors">
             <LogOut size={20} />
             Log out
           </button>
@@ -162,20 +168,16 @@ export function AdminLayout() {
           </div>
 
           <div className="flex items-center gap-4 sm:gap-6">
-            <button
-              className="relative text-slate-500 hover:text-slate-700 transition-colors"
-              aria-label="Notifications">
-              
-              <Bell size={22} />
-              <span className="absolute top-0 right-0 w-2 h-2 bg-danger rounded-full border-2 border-white"></span>
-            </button>
+            <NotificationBell />
             <div className="flex items-center gap-3 cursor-pointer pl-4 border-l border-slate-200">
-              <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-white font-bold">
-                SA
+              <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                {(user?.email?.[0] ?? 'A').toUpperCase()}
               </div>
               <div className="hidden sm:block">
-                <p className="text-sm font-bold text-slate-900">System Admin</p>
-                <p className="text-xs text-slate-500">Superuser</p>
+                <p className="text-sm font-bold text-slate-900">
+                  {user?.email.split('@')[0] ?? 'Admin'}
+                </p>
+                <p className="text-xs text-slate-500">Administrator</p>
               </div>
             </div>
           </div>
