@@ -58,7 +58,7 @@ export function Features() {
                 emails, and keep your team aligned.
               </p>
               <Link
-                to="/auth/register"
+                to="/register"
                 className="inline-flex items-center text-sm font-bold text-slate-900 hover:text-primary transition-colors">
                 
                 Explore ATS features <ArrowRight size={16} className="ml-2" />

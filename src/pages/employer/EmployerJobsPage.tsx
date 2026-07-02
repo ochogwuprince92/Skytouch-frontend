@@ -1,268 +1,315 @@
-import React, { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Loader2, Plus } from 'lucide-react';
+import { FormAlert } from '../../components/FormAlert';
+import { PaginatedList } from '../../components/PaginatedList';
+import { LocationSelect } from '../../components/LocationSelect';
+import { ExportCsvButton } from '../../components/ExportCsvButton';
+import { ApiError } from '../../lib/api';
 import {
-  Search,
-  Filter,
-  Plus,
-  MoreVertical,
-  Users,
-  Eye,
-  Edit,
-  Copy,
-  Trash2,
-  Clock,
-  MapPin } from
-'lucide-react';
-import { motion } from 'framer-motion';
-export function EmployerJobsPage() {
-  const [activeTab, setActiveTab] = useState('active');
-  const jobs = [
-  {
-    id: 1,
-    title: 'Senior Frontend Engineer',
-    location: 'San Francisco, CA (Hybrid)',
-    type: 'Full-time',
-    status: 'Active',
-    candidates: 124,
-    newCandidates: 12,
-    views: 1450,
-    posted: '14 days ago',
-    expires: '16 days'
-  },
-  {
-    id: 2,
-    title: 'Product Manager',
-    location: 'Remote',
-    type: 'Full-time',
-    status: 'Active',
-    candidates: 86,
-    newCandidates: 5,
-    views: 980,
-    posted: '21 days ago',
-    expires: '9 days'
-  },
-  {
-    id: 3,
-    title: 'UX Researcher',
-    location: 'New York, NY',
-    type: 'Contract',
-    status: 'Closed',
-    candidates: 45,
-    newCandidates: 0,
-    views: 650,
-    posted: '2 months ago',
-    expires: 'Expired'
-  },
-  {
-    id: 4,
-    title: 'DevOps Engineer',
-    location: 'Seattle, WA',
-    type: 'Full-time',
-    status: 'Draft',
-    candidates: 0,
-    newCandidates: 0,
-    views: 0,
-    posted: 'Not posted',
-    expires: '-'
-  }];
+  formatEmploymentType,
+  formatLocation,
+  formatRelativeTime,
+  formatWorkType,
+} from '../../lib/format';
+import { getMyCompany } from '../../services/companyService';
+import {
+  closeJob,
+  createJob,
+  listMyJobs,
+  publishJob,
+} from '../../services/jobService';
+import { exportJobApplications } from '../../services/analyticsService';
+import type { CompanyResponse } from '../../types/company';
+import type { EmploymentType, JobSummary, WorkMode } from '../../types/job';
 
-  const filteredJobs = jobs.filter((job) => {
-    if (activeTab === 'all') return true;
-    return job.status.toLowerCase() === activeTab;
-  });
+export function EmployerJobsPage() {
+  const [company, setCompany] = useState<CompanyResponse | null>(null);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [showCreate, setShowCreate] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [actionId, setActionId] = useState<string | null>(null);
+
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [requirements, setRequirements] = useState('');
+  const [employmentType, setEmploymentType] = useState<EmploymentType>('FULL_TIME');
+  const [workMode, setWorkMode] = useState<WorkMode>('REMOTE');
+  const [salaryMin, setSalaryMin] = useState('');
+  const [salaryMax, setSalaryMax] = useState('');
+  const [locationState, setLocationState] = useState('');
+  const [locationLga, setLocationLga] = useState('');
+
+  useEffect(() => {
+    void getMyCompany()
+      .then(setCompany)
+      .catch(() => setCompany(null));
+  }, []);
+
+  const fetchPage = useCallback(
+    (page: number, size: number) => listMyJobs(page, size),
+    [],
+  );
+
+  const filteredFetch = useCallback(
+    async (page: number, size: number) => {
+      const result = await fetchPage(page, size);
+      if (!statusFilter) return result;
+      return {
+        ...result,
+        content: result.content.filter(
+          (j) => j.status === statusFilter.toUpperCase(),
+        ),
+      };
+    },
+    [fetchPage, statusFilter],
+  );
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await createJob({
+        title: title.trim(),
+        description: description.trim(),
+        requirements: requirements.trim() || undefined,
+        employmentType,
+        workMode,
+        salaryMin: salaryMin ? Number(salaryMin) : undefined,
+        salaryMax: salaryMax ? Number(salaryMax) : undefined,
+        salaryCurrency: 'NGN',
+        locationState: locationState || undefined,
+        locationLga: locationLga.trim() || undefined,
+      });
+      setShowCreate(false);
+      setTitle('');
+      setDescription('');
+      setRequirements('');
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : 'Unable to create job.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handlePublish = async (job: JobSummary) => {
+    setActionId(job.id);
+    setError(null);
+    try {
+      await publishJob(job.id);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Unable to publish job.');
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const handleClose = async (job: JobSummary) => {
+    setActionId(job.id);
+    setError(null);
+    try {
+      await closeJob(job.id);
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Unable to close job.');
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const canPublish = company?.status === 'ACTIVE';
+
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <div className="max-w-5xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">
-            Job Postings
-          </h1>
-          <p className="text-slate-600">
-            Manage your job listings and track performance.
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900">My jobs</h1>
+          <p className="text-slate-600 mt-1">Create, publish, and manage postings.</p>
         </div>
-        <button className="bg-primary hover:bg-primary-600 text-white px-6 py-2.5 rounded-xl font-bold transition-all shadow-soft flex items-center justify-center gap-2 w-full sm:w-auto">
-          <Plus size={18} /> Post a New Job
+        <button
+          type="button"
+          onClick={() => setShowCreate(!showCreate)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold">
+          <Plus size={16} /> Post a job
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        {/* Header & Filters */}
-        <div className="p-4 sm:p-6 border-b border-slate-200 space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <div className="flex bg-slate-100 p-1 rounded-xl w-full sm:w-auto overflow-x-auto hide-scrollbar">
-              {['Active', 'Draft', 'Closed', 'All'].map((tab) =>
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab.toLowerCase())}
-                className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-sm font-semibold transition-all whitespace-nowrap ${activeTab === tab.toLowerCase() ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-                
-                  {tab}
-                </button>
-              )}
-            </div>
-
-            <div className="flex gap-3 w-full sm:w-auto">
-              <div className="flex-1 sm:w-64 relative">
-                <Search
-                  size={18}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                
-                <input
-                  type="text"
-                  placeholder="Search jobs..."
-                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
-                
-              </div>
-              <button className="bg-slate-50 border border-slate-200 p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors shrink-0">
-                <Filter size={20} />
-              </button>
-            </div>
-          </div>
+      {company?.status === 'PENDING' && (
+        <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">
+          Company pending approval — jobs can be drafted but not published yet.{' '}
+          <Link to="/employer/company" className="font-semibold underline">
+            View company
+          </Link>
         </div>
+      )}
 
-        {/* Jobs List */}
-        <div className="divide-y divide-slate-100">
-          {filteredJobs.map((job, index) =>
-          <motion.div
-            key={job.id}
-            initial={{
-              opacity: 0,
-              y: 10
-            }}
-            animate={{
-              opacity: 1,
-              y: 0
-            }}
-            transition={{
-              duration: 0.3,
-              delay: index * 0.05
-            }}
-            className="p-4 sm:p-6 hover:bg-slate-50 transition-colors flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-lg font-bold text-slate-900">
-                    {job.title}
-                  </h3>
-                  <span
-                  className={`px-2.5 py-0.5 rounded-md text-xs font-bold ${job.status === 'Active' ? 'bg-success/10 text-success' : job.status === 'Draft' ? 'bg-warning/10 text-warning' : 'bg-slate-100 text-slate-500'}`}>
-                  
-                    {job.status}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-4 text-sm text-slate-500 mb-4">
-                  <span className="flex items-center">
-                    <MapPin size={14} className="mr-1.5" /> {job.location}
-                  </span>
-                  <span className="flex items-center">
-                    <Clock size={14} className="mr-1.5" /> {job.type}
-                  </span>
-                  <span className="flex items-center">
-                    Posted: {job.posted}
-                  </span>
-                </div>
+      {error && <FormAlert message={error} />}
 
-                {job.status !== 'Draft' &&
-              <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-primary-50 text-primary flex items-center justify-center">
-                        <Users size={16} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">
-                          {job.candidates}{' '}
-                          <span className="font-normal text-slate-500">
-                            Candidates
-                          </span>
-                        </p>
-                        {job.newCandidates > 0 &&
-                    <p className="text-xs text-success font-medium">
-                            +{job.newCandidates} new this week
-                          </p>
-                    }
-                      </div>
-                    </div>
-                    <div className="w-px h-8 bg-slate-200"></div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center">
-                        <Eye size={16} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">
-                          {job.views}{' '}
-                          <span className="font-normal text-slate-500">
-                            Views
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+      {showCreate && (
+        <form
+          onSubmit={handleCreate}
+          className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
+          <input
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Job title"
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+          />
+          <textarea
+            required
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Description"
+            rows={4}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm resize-none"
+          />
+          <textarea
+            value={requirements}
+            onChange={(e) => setRequirements(e.target.value)}
+            placeholder="Requirements (optional)"
+            rows={2}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm resize-none"
+          />
+          <div className="grid sm:grid-cols-2 gap-4">
+            <select
+              value={employmentType}
+              onChange={(e) =>
+                setEmploymentType(e.target.value as EmploymentType)
               }
+              className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm">
+              <option value="FULL_TIME">Full-time</option>
+              <option value="PART_TIME">Part-time</option>
+              <option value="CONTRACT">Contract</option>
+              <option value="INTERNSHIP">Internship</option>
+            </select>
+            <select
+              value={workMode}
+              onChange={(e) => setWorkMode(e.target.value as WorkMode)}
+              className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm">
+              <option value="REMOTE">Remote</option>
+              <option value="HYBRID">Hybrid</option>
+              <option value="ONSITE">Onsite</option>
+            </select>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <input
+              type="number"
+              value={salaryMin}
+              onChange={(e) => setSalaryMin(e.target.value)}
+              placeholder="Min salary (NGN)"
+              className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+            />
+            <input
+              type="number"
+              value={salaryMax}
+              onChange={(e) => setSalaryMax(e.target.value)}
+              placeholder="Max salary (NGN)"
+              className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+            />
+          </div>
+          <LocationSelect
+            stateValue={locationState}
+            onStateChange={setLocationState}
+          />
+          <input
+            value={locationLga}
+            onChange={(e) => setLocationLga(e.target.value)}
+            placeholder="LGA (optional)"
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+          />
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-semibold disabled:opacity-60">
+            {isSubmitting ? 'Creating…' : 'Create draft'}
+          </button>
+        </form>
+      )}
+
+      <div className="flex gap-2">
+        {['', 'DRAFT', 'ACTIVE', 'CLOSED'].map((s) => (
+          <button
+            key={s || 'all'}
+            type="button"
+            onClick={() => {
+              setStatusFilter(s);
+              setRefreshKey((k) => k + 1);
+            }}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold ${
+              statusFilter === s
+                ? 'bg-primary text-white'
+                : 'bg-white border border-slate-200 text-slate-600'
+            }`}>
+            {s || 'All'}
+          </button>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <PaginatedList
+          refreshKey={`${refreshKey}-${statusFilter}`}
+          fetchPage={filteredFetch}
+          emptyMessage="No jobs yet. Create your first posting above."
+          listClassName="divide-y divide-slate-100"
+          renderItem={(job: JobSummary) => (
+            <div className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div>
+                <p className="font-bold text-slate-900">{job.title}</p>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  {formatLocation(job.locationState, job.locationLga)} ·{' '}
+                  {formatEmploymentType(job.employmentType)} ·{' '}
+                  {formatWorkType(job.workMode)}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {formatRelativeTime(job.createdAt)} ·{' '}
+                  <span className="font-semibold">{job.status}</span>
+                </p>
               </div>
-
-              <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between gap-4 border-t lg:border-t-0 border-slate-100 pt-4 lg:pt-0">
-                {job.status === 'Active' &&
-              <p className="text-sm text-slate-500">
-                    Expires in{' '}
-                    <span className="font-bold text-slate-900">
-                      {job.expires}
-                    </span>
-                  </p>
-              }
-                <div className="flex items-center gap-2">
-                  {job.status !== 'Draft' &&
+              <div className="flex flex-wrap items-center gap-2">
+                {job.status === 'DRAFT' && (
+                  <button
+                    type="button"
+                    disabled={!canPublish || actionId === job.id}
+                    onClick={() => void handlePublish(job)}
+                    className="px-3 py-1.5 bg-success text-white rounded-lg text-xs font-bold disabled:opacity-50"
+                    title={
+                      canPublish ? 'Publish' : 'Company must be approved first'
+                    }>
+                    Publish
+                  </button>
+                )}
+                {job.status === 'ACTIVE' && (
+                  <button
+                    type="button"
+                    disabled={actionId === job.id}
+                    onClick={() => void handleClose(job)}
+                    className="px-3 py-1.5 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold">
+                    Close
+                  </button>
+                )}
                 <Link
                   to="/employer/ats"
-                  className="bg-primary-50 text-primary hover:bg-primary hover:text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
-                  
-                      View Candidates
-                    </Link>
-                }
-                  <div className="flex gap-1">
-                    <button
-                    className="p-2 text-slate-400 hover:text-primary hover:bg-primary-50 rounded-lg transition-colors"
-                    title="Edit">
-                    
-                      <Edit size={18} />
-                    </button>
-                    <button
-                    className="p-2 text-slate-400 hover:text-primary hover:bg-primary-50 rounded-lg transition-colors"
-                    title="Duplicate">
-                    
-                      <Copy size={18} />
-                    </button>
-                    <button
-                    className="p-2 text-slate-400 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
-                    title="Delete">
-                    
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
+                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                  Applicants
+                </Link>
+                <ExportCsvButton
+                  label="CSV"
+                  onExport={() => exportJobApplications(job.id)}
+                />
               </div>
-            </motion.div>
-          )}
-
-          {filteredJobs.length === 0 &&
-          <div className="p-12 text-center">
-              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
-                <Briefcase size={24} />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">
-                No jobs found
-              </h3>
-              <p className="text-slate-500 mb-6">
-                You don't have any {activeTab !== 'all' ? activeTab : ''} jobs
-                at the moment.
-              </p>
-              <button className="bg-primary text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-primary-600 transition-colors inline-flex items-center gap-2">
-                <Plus size={18} /> Post a New Job
-              </button>
             </div>
-          }
-        </div>
+          )}
+          getItemKey={(job) => job.id}
+        />
       </div>
-    </div>);
-
+    </div>
+  );
 }

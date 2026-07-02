@@ -1,175 +1,217 @@
-import React, { useState } from 'react';
-import {
-  Building2,
-  MapPin,
-  Globe,
-  Users,
-  Camera,
-  Plus,
-  Trash2 } from
-'lucide-react';
+import { useEffect, useState } from 'react';
+import { Building2, Loader2 } from 'lucide-react';
+import { FormAlert } from '../../components/FormAlert';
+import { LocationSelect } from '../../components/LocationSelect';
+import { companyInitials } from '../../lib/format';
+import { ApiError } from '../../lib/api';
+import { getMyCompany, updateMyCompany } from '../../services/companyService';
+import type { CompanyResponse } from '../../types/company';
+
 export function EmployerCompanyPage() {
-  const [locations, setLocations] = useState([
-  'San Francisco, CA',
-  'London, UK']
-  );
+  const [company, setCompany] = useState<CompanyResponse | null>(null);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [industry, setIndustry] = useState('');
+  const [website, setWebsite] = useState('');
+  const [addressState, setAddressState] = useState('');
+  const [addressLga, setAddressLga] = useState('');
+  const [addressLine, setAddressLine] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getMyCompany()
+      .then((data) => {
+        if (!cancelled) {
+          setCompany(data);
+          setName(data.name);
+          setDescription(data.description ?? '');
+          setIndustry(data.industry ?? '');
+          setWebsite(data.website ?? '');
+          setAddressState(data.addressState ?? '');
+          setAddressLga(data.addressLga ?? '');
+          setAddressLine(data.addressLine ?? '');
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(
+            err instanceof ApiError ? err.message : 'Failed to load company.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const address =
+        [addressLine.trim(), addressLga.trim(), addressState]
+          .filter(Boolean)
+          .join(', ') || undefined;
+      const updated = await updateMyCompany({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        industry: industry.trim() || undefined,
+        website: website.trim() || undefined,
+        address,
+      });
+      setCompany(updated);
+      setSuccess('Company profile updated.');
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : 'Unable to save changes.',
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!company) {
+    return <FormAlert message={error ?? 'No company found.'} />;
+  }
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Company profile</h1>
+        <p className="text-slate-500 mt-1">
+          Status:{' '}
+          <span
+            className={`font-semibold ${
+              company.status === 'ACTIVE'
+                ? 'text-success'
+                : company.status === 'PENDING'
+                  ? 'text-warning'
+                  : 'text-danger'
+            }`}>
+            {company.status}
+          </span>
+        </p>
+      </div>
+
+      {company.status === 'PENDING' && (
+        <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">
+          Awaiting admin approval before you can publish jobs.
+        </div>
+      )}
+
+      {error && <FormAlert message={error} />}
+      {success && <FormAlert message={success} variant="success" />}
+
+      <form
+        onSubmit={handleSave}
+        className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
+        <div className="flex items-center gap-4 mb-2">
+          <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-xl">
+            {company.logoUrl ? (
+              <img
+                src={company.logoUrl}
+                alt=""
+                className="w-full h-full object-cover rounded-xl"
+              />
+            ) : (
+              companyInitials(company.name)
+            )}
+          </div>
+          <Building2 className="text-slate-400" size={20} />
+        </div>
+
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Company Profile</h1>
-          <p className="text-slate-500 mt-1">
-            Manage your employer branding and company details.
-          </p>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            Company name
+          </label>
+          <input
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+          />
         </div>
-        <button className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold hover:bg-primary-600 transition-colors shadow-soft">
-          Save Changes
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            Industry
+          </label>
+          <input
+            value={industry}
+            onChange={(e) => setIndustry(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            Website
+          </label>
+          <input
+            type="url"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+          />
+        </div>
+        <LocationSelect
+          stateValue={addressState}
+          onStateChange={setAddressState}
+        />
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            LGA
+          </label>
+          <input
+            value={addressLga}
+            onChange={(e) => setAddressLga(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            Street address
+          </label>
+          <input
+            value={addressLine}
+            onChange={(e) => setAddressLine(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            Description
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={4}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm resize-none"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={isSaving || company.status === 'REJECTED'}
+          className="px-6 py-2.5 bg-primary text-white rounded-xl font-bold text-sm disabled:opacity-60">
+          {isSaving ? 'Saving…' : 'Save changes'}
         </button>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-soft border border-slate-200 overflow-hidden">
-        {/* Cover Image */}
-        <div className="h-48 bg-slate-100 relative group">
-          <img
-            src="https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80"
-            alt="Cover"
-            className="w-full h-full object-cover" />
-          
-          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <button className="bg-white text-slate-900 px-4 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-50">
-              <Camera size={18} /> Change Cover
-            </button>
-          </div>
-        </div>
-
-        <div className="p-6 sm:p-8">
-          {/* Logo */}
-          <div className="flex items-end gap-6 -mt-16 mb-8 relative z-10">
-            <div className="w-24 h-24 bg-white rounded-2xl shadow-soft border-4 border-white flex items-center justify-center relative group overflow-hidden">
-              <div className="w-full h-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold">
-                TN
-              </div>
-              <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                <Camera size={20} className="text-white" />
-              </div>
-            </div>
-          </div>
-
-          <form className="space-y-8">
-            {/* Basic Info */}
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 mb-4">
-                Basic Information
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Company Name
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue="TechNova"
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
-                  
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Tagline
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue="Building the future of software."
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
-                  
-                </div>
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    About Us
-                  </label>
-                  <textarea
-                    rows={4}
-                    defaultValue="TechNova is a leading software company..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none">
-                  </textarea>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Industry
-                  </label>
-                  <select className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-white">
-                    <option>Technology</option>
-                    <option>Finance</option>
-                    <option>Healthcare</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Company Size
-                  </label>
-                  <select className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary bg-white">
-                    <option>1-50 employees</option>
-                    <option>51-200 employees</option>
-                    <option selected>201-500 employees</option>
-                    <option>500+ employees</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Website
-                  </label>
-                  <div className="relative">
-                    <Globe
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                      size={18} />
-                    
-                    <input
-                      type="url"
-                      defaultValue="https://technova.example.com"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
-                    
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Locations */}
-            <div className="pt-8 border-t border-slate-200">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-slate-900">Locations</h3>
-                <button
-                  type="button"
-                  className="text-primary font-bold text-sm flex items-center gap-1 hover:text-primary-600">
-                  
-                  <Plus size={16} /> Add Location
-                </button>
-              </div>
-              <div className="space-y-3">
-                {locations.map((loc, i) =>
-                <div key={i} className="flex items-center gap-3">
-                    <div className="relative flex-1">
-                      <MapPin
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                      size={18} />
-                    
-                      <input
-                      type="text"
-                      defaultValue={loc}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
-                    
-                    </div>
-                    <button
-                    type="button"
-                    className="p-2.5 text-slate-400 hover:text-danger hover:bg-danger-50 rounded-xl transition-colors">
-                    
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>);
-
+      </form>
+    </div>
+  );
 }

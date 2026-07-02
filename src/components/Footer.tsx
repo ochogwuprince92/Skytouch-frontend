@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom'
-import { LogoMark } from './LogoMark'
+import React from 'react';
+import { Briefcase } from 'lucide-react';
+import { Link } from 'react-router-dom';
 export function Footer() {
   return (
     <footer className="bg-white border-t border-slate-200 pt-20 pb-10">
@@ -8,11 +9,13 @@ export function Footer() {
           <div className="col-span-2 lg:col-span-2">
             <Link
               to="/"
-              className="flex items-center gap-2.5 mb-6 group inline-flex"
-            >
-              <LogoMark className="w-8 h-8 rounded-lg" />
+              className="flex items-center gap-2.5 mb-6 group inline-flex">
+              
+              <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white transition-transform group-hover:scale-105">
+                <Briefcase size={16} strokeWidth={2.5} />
+              </div>
               <span className="text-xl font-bold text-slate-900 tracking-tight">
-                SkyTouch<span className="text-slate-400 font-medium">Jobs</span>
+                Skytouch<span className="text-slate-400 font-medium">Jobs</span>
               </span>
             </Link>
             <p className="text-slate-500 mb-8 max-w-sm leading-relaxed text-sm">
@@ -29,32 +32,32 @@ export function Footer() {
               <li>
                 <Link
                   to="/jobs"
-                  className="text-slate-500 hover:text-slate-900 transition-colors"
-                >
+                  className="text-slate-500 hover:text-slate-900 transition-colors">
+                  
                   Browse Jobs
                 </Link>
               </li>
               <li>
                 <Link
                   to="/companies"
-                  className="text-slate-500 hover:text-slate-900 transition-colors"
-                >
+                  className="text-slate-500 hover:text-slate-900 transition-colors">
+                  
                   Browse Companies
                 </Link>
               </li>
               <li>
                 <a
                   href="#"
-                  className="text-slate-500 hover:text-slate-900 transition-colors"
-                >
+                  className="text-slate-500 hover:text-slate-900 transition-colors">
+                  
                   Salary Calculator
                 </a>
               </li>
               <li>
                 <a
                   href="#"
-                  className="text-slate-500 hover:text-slate-900 transition-colors"
-                >
+                  className="text-slate-500 hover:text-slate-900 transition-colors">
+                  
                   Career Advice
                 </a>
               </li>
@@ -68,33 +71,33 @@ export function Footer() {
             <ul className="space-y-4 text-sm">
               <li>
                 <Link
-                  to="/auth/register?role=employer"
-                  className="text-slate-500 hover:text-slate-900 transition-colors"
-                >
+                  to="/register?role=employer"
+                  className="text-slate-500 hover:text-slate-900 transition-colors">
+                  
                   Post a Job
                 </Link>
               </li>
               <li>
                 <a
                   href="#"
-                  className="text-slate-500 hover:text-slate-900 transition-colors"
-                >
+                  className="text-slate-500 hover:text-slate-900 transition-colors">
+                  
                   Search Resumes
                 </a>
               </li>
               <li>
                 <a
                   href="#"
-                  className="text-slate-500 hover:text-slate-900 transition-colors"
-                >
+                  className="text-slate-500 hover:text-slate-900 transition-colors">
+                  
                   Applicant Tracking
                 </a>
               </li>
               <li>
                 <Link
                   to="/pricing"
-                  className="text-slate-500 hover:text-slate-900 transition-colors"
-                >
+                  className="text-slate-500 hover:text-slate-900 transition-colors">
+                  
                   Pricing Plans
                 </Link>
               </li>
@@ -107,32 +110,32 @@ export function Footer() {
               <li>
                 <a
                   href="#"
-                  className="text-slate-500 hover:text-slate-900 transition-colors"
-                >
+                  className="text-slate-500 hover:text-slate-900 transition-colors">
+                  
                   About Us
                 </a>
               </li>
               <li>
                 <a
                   href="#"
-                  className="text-slate-500 hover:text-slate-900 transition-colors"
-                >
+                  className="text-slate-500 hover:text-slate-900 transition-colors">
+                  
                   Careers
                 </a>
               </li>
               <li>
                 <a
                   href="#"
-                  className="text-slate-500 hover:text-slate-900 transition-colors"
-                >
+                  className="text-slate-500 hover:text-slate-900 transition-colors">
+                  
                   Contact
                 </a>
               </li>
               <li>
                 <a
                   href="#"
-                  className="text-slate-500 hover:text-slate-900 transition-colors"
-                >
+                  className="text-slate-500 hover:text-slate-900 transition-colors">
+                  
                   Privacy Policy
                 </a>
               </li>
@@ -142,7 +145,7 @@ export function Footer() {
 
         <div className="border-t border-slate-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-500">
           <p>
-            © {new Date().getFullYear()} SkyTouch Jobs. All rights reserved.
+            © {new Date().getFullYear()} Skytouch Jobs. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <a href="#" className="hover:text-slate-900 transition-colors">
@@ -157,6 +160,6 @@ export function Footer() {
           </div>
         </div>
       </div>
-    </footer>
-  )
+    </footer>);
+
 }
