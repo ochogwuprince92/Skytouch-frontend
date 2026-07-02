@@ -1,273 +1,210 @@
-import React, { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Loader2, User } from 'lucide-react';
 import {
-  Search,
-  Filter,
-  MoreHorizontal,
-  Mail,
-  Calendar,
-  Eye,
-  Star,
-  CheckCircle2,
-  XCircle,
-  Clock } from
-'lucide-react';
-import { motion } from 'framer-motion';
-// Mock Data
-const stages = [
-{
-  id: 'applied',
-  name: 'Applied',
-  count: 12
-},
-{
-  id: 'screening',
-  name: 'Screening',
-  count: 8
-},
-{
-  id: 'interview',
-  name: 'Interview',
-  count: 5
-},
-{
-  id: 'offer',
-  name: 'Offer Sent',
-  count: 2
-},
-{
-  id: 'hired',
-  name: 'Hired',
-  count: 1
-}];
-
-const candidates = [
-{
-  id: 1,
-  name: 'Sarah Jenkins',
-  role: 'Senior Frontend Engineer',
-  stage: 'applied',
-  rating: 4,
-  appliedDate: '2 days ago',
-  avatar: 'SJ',
-  match: 92
-},
-{
-  id: 2,
-  name: 'Michael Chen',
-  role: 'Senior Frontend Engineer',
-  stage: 'screening',
-  rating: 5,
-  appliedDate: '4 days ago',
-  avatar: 'MC',
-  match: 95
-},
-{
-  id: 3,
-  name: 'Aisha Patel',
-  role: 'Senior Frontend Engineer',
-  stage: 'interview',
-  rating: 4,
-  appliedDate: '1 week ago',
-  avatar: 'AP',
-  match: 88
-},
-{
-  id: 4,
-  name: 'David Kim',
-  role: 'Senior Frontend Engineer',
-  stage: 'applied',
-  rating: 3,
-  appliedDate: '1 day ago',
-  avatar: 'DK',
-  match: 75
-},
-{
-  id: 5,
-  name: 'Elena Rodriguez',
-  role: 'Senior Frontend Engineer',
-  stage: 'offer',
-  rating: 5,
-  appliedDate: '2 weeks ago',
-  avatar: 'ER',
-  match: 98
-},
-{
-  id: 6,
-  name: 'James Wilson',
-  role: 'Senior Frontend Engineer',
-  stage: 'screening',
-  rating: 4,
-  appliedDate: '5 days ago',
-  avatar: 'JW',
-  match: 85
-}];
+  ApplicationStatusBadge,
+  EMPLOYER_STATUS_OPTIONS,
+} from '../../components/ApplicationStatusBadge';
+import { ExportCsvButton } from '../../components/ExportCsvButton';
+import { FormAlert } from '../../components/FormAlert';
+import { PaginatedList } from '../../components/PaginatedList';
+import { ApiError } from '../../lib/api';
+import { formatRelativeTime } from '../../lib/format';
+import { exportEmployerApplications } from '../../services/analyticsService';
+import { listJobApplicants, listMyJobs, updateApplicationStatus } from '../../services/jobService';
+import type { ApplicationResponse, ApplicationStatus } from '../../types/application';
+import type { JobSummary } from '../../types/job';
 
 export function EmployerATSPage() {
-  const [selectedJob, setSelectedJob] = useState('Senior Frontend Engineer');
+  const [jobs, setJobs] = useState<JobSummary[]>([]);
+  const [selectedJobId, setSelectedJobId] = useState('');
+  const [isLoadingJobs, setIsLoadingJobs] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadJobs() {
+      setIsLoadingJobs(true);
+      try {
+        const result = await listMyJobs(0, 50);
+        if (!cancelled) {
+          setJobs(result.content);
+          if (result.content.length > 0) {
+            setSelectedJobId((prev) => prev || result.content[0].id);
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof ApiError ? err.message : 'Failed to load jobs.',
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoadingJobs(false);
+      }
+    }
+    void loadJobs();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const fetchApplicants = useCallback(
+    (page: number, size: number) => {
+      if (!selectedJobId) {
+        return Promise.resolve({
+          content: [],
+          page: 0,
+          size,
+          totalElements: 0,
+          totalPages: 0,
+        });
+      }
+      return listJobApplicants(selectedJobId, page, size);
+    },
+    [selectedJobId],
+  );
+
+  const handleStatusChange = async (
+    application: ApplicationResponse,
+    status: ApplicationStatus,
+  ) => {
+    if (!selectedJobId) return;
+    setUpdatingId(application.id);
+    setError(null);
+    try {
+      await updateApplicationStatus(selectedJobId, application.id, { status });
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : 'Unable to update status.',
+      );
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const selectedJob = jobs.find((j) => j.id === selectedJobId);
+
+  if (isLoadingJobs) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col">
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 mb-1">
-            Applicant Tracking
+            Applicant tracking
           </h1>
           <p className="text-slate-600">
-            Manage candidates across your hiring pipeline.
+            Review candidates and move them through your hiring pipeline.
           </p>
         </div>
-        <div className="flex gap-3">
-          <select
-            value={selectedJob}
-            onChange={(e) => setSelectedJob(e.target.value)}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-900 font-semibold outline-none focus:ring-2 focus:ring-primary shadow-sm">
-            
-            <option>Senior Frontend Engineer</option>
-            <option>Product Manager</option>
-            <option>UX Researcher</option>
+        {jobs.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3">
+            <ExportCsvButton
+              label="Export all applications"
+              onExport={exportEmployerApplications}
+            />
+            <select
+            value={selectedJobId}
+            onChange={(e) => {
+              setSelectedJobId(e.target.value);
+              setRefreshKey((k) => k + 1);
+            }}
+            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 min-w-[220px]">
+            {jobs.map((job) => (
+              <option key={job.id} value={job.id}>
+                {job.title} ({job.status})
+              </option>
+            ))}
           </select>
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Filters Bar */}
-      <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm mb-6 flex flex-col sm:flex-row gap-3 shrink-0">
-        <div className="flex-1 relative">
-          <Search
-            size={18}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          
-          <input
-            type="text"
-            placeholder="Search candidates by name or skills..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" />
-          
+      {error && <FormAlert message={error} />}
+
+      {jobs.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
+          <p className="text-slate-600 mb-4">
+            Post a job first to start receiving applications.
+          </p>
+          <Link
+            to="/employer/jobs"
+            className="text-primary font-semibold hover:underline">
+            Go to My Jobs →
+          </Link>
         </div>
-        <div className="flex gap-2 overflow-x-auto hide-scrollbar">
-          <button className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors whitespace-nowrap flex items-center gap-2">
-            <Filter size={16} /> Filters
-          </button>
-          <button className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors whitespace-nowrap">
-            Rating: 4+ ★
-          </button>
-          <button className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-100 transition-colors whitespace-nowrap">
-            Match: 80%+
-          </button>
-        </div>
-      </div>
-
-      {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto hide-scrollbar pb-4">
-        <div className="flex gap-6 h-full min-w-max">
-          {stages.map((stage) =>
-          <div key={stage.id} className="w-80 flex flex-col h-full">
-              {/* Column Header */}
-              <div className="flex items-center justify-between mb-4 shrink-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-slate-900">{stage.name}</h3>
-                  <span className="bg-slate-200 text-slate-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                    {stage.count}
-                  </span>
-                </div>
-                <button className="text-slate-400 hover:text-slate-600">
-                  <MoreHorizontal size={20} />
-                </button>
-              </div>
-
-              {/* Column Cards Container */}
-              <div className="flex-1 bg-slate-100/50 rounded-2xl p-3 overflow-y-auto space-y-3 border border-slate-200/50">
-                {candidates.
-              filter((c) => c.stage === stage.id).
-              map((candidate) =>
-              <motion.div
-                layoutId={`card-${candidate.id}`}
-                key={candidate.id}
-                className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
-                
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary-100 text-primary font-bold flex items-center justify-center text-sm">
-                            {candidate.avatar}
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-slate-900 text-sm group-hover:text-primary transition-colors">
-                              {candidate.name}
-                            </h4>
-                            <p className="text-xs text-slate-500">
-                              {candidate.appliedDate}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <span className="text-xs font-bold text-success bg-success/10 px-1.5 py-0.5 rounded flex items-center">
-                            {candidate.match}% Match
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1 mb-4">
-                        {[1, 2, 3, 4, 5].map((star) =>
-                  <Star
-                    key={star}
-                    size={14}
-                    className={
-                    star <= candidate.rating ?
-                    'text-yellow-500 fill-yellow-500' :
-                    'text-slate-200 fill-slate-200'
-                    } />
-
-                  )}
-                      </div>
-
-                      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-                        <div className="flex gap-1">
-                          <button
-                      className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary-50 rounded-lg transition-colors"
-                      title="View Profile">
-                      
-                            <Eye size={16} />
-                          </button>
-                          <button
-                      className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary-50 rounded-lg transition-colors"
-                      title="Message">
-                      
-                            <Mail size={16} />
-                          </button>
-                          <button
-                      className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary-50 rounded-lg transition-colors"
-                      title="Schedule Interview">
-                      
-                            <Calendar size={16} />
-                          </button>
-                        </div>
-                        <div className="flex gap-1">
-                          <button
-                      className="p-1.5 text-slate-400 hover:text-danger hover:bg-danger/10 rounded-lg transition-colors"
-                      title="Reject">
-                      
-                            <XCircle size={16} />
-                          </button>
-                          <button
-                      className="p-1.5 text-slate-400 hover:text-success hover:bg-success/10 rounded-lg transition-colors"
-                      title="Advance">
-                      
-                            <CheckCircle2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-              )}
-
-                {/* Empty State for Column */}
-                {candidates.filter((c) => c.stage === stage.id).length ===
-              0 &&
-              <div className="h-24 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center text-slate-400 text-sm font-medium">
-                    Drop candidates here
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-slate-100 bg-slate-50">
+            <p className="text-sm font-semibold text-slate-700">
+              {selectedJob?.title ?? 'Applicants'}
+            </p>
+          </div>
+          <PaginatedList
+            refreshKey={`${refreshKey}-${selectedJobId}`}
+            fetchPage={fetchApplicants}
+            emptyMessage="No applicants for this job yet."
+            listClassName="divide-y divide-slate-100"
+            renderItem={(app: ApplicationResponse) => (
+              <div className="p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 shrink-0">
+                    <User size={18} />
                   </div>
-              }
+                  <div className="min-w-0">
+                    <Link
+                      to={`/employer/jobs/${selectedJobId}/applications/${app.id}`}
+                      className="font-bold text-slate-900 hover:text-primary truncate block">
+                      {app.seekerName}
+                    </Link>
+                    <p className="text-sm text-slate-500 truncate">
+                      {app.seekerEmail}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Applied {formatRelativeTime(app.appliedAt)}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <ApplicationStatusBadge status={app.status} />
+                  <select
+                    value={app.status}
+                    disabled={updatingId === app.id}
+                    onChange={(e) =>
+                      void handleStatusChange(
+                        app,
+                        e.target.value as ApplicationStatus,
+                      )
+                    }
+                    className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 disabled:opacity-60">
+                    {EMPLOYER_STATUS_OPTIONS.map((s) => (
+                      <option key={s} value={s}>
+                        {s.replace(/_/g, ' ')}
+                      </option>
+                    ))}
+                  </select>
+                  <Link
+                    to={`/employer/jobs/${selectedJobId}/applications/${app.id}`}
+                    className="text-sm font-semibold text-primary hover:underline">
+                    Open →
+                  </Link>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            getItemKey={(app) => app.id}
+          />
         </div>
-      </div>
-    </div>);
-
+      )}
+    </div>
+  );
 }

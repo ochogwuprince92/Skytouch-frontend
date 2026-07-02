@@ -1,325 +1,133 @@
-import React from 'react';
-import { Eye, Users, Clock, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import {
-  LineChart,
-  Line,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell } from
-'recharts';
-const lineData = [
-{
-  name: 'Mon',
-  applications: 12
-},
-{
-  name: 'Tue',
-  applications: 19
-},
-{
-  name: 'Wed',
-  applications: 15
-},
-{
-  name: 'Thu',
-  applications: 22
-},
-{
-  name: 'Fri',
-  applications: 28
-},
-{
-  name: 'Sat',
-  applications: 10
-},
-{
-  name: 'Sun',
-  applications: 8
-}];
-
-const sourceData = [
-{
-  name: 'Direct',
-  value: 400
-},
-{
-  name: 'LinkedIn',
-  value: 300
-},
-{
-  name: 'Indeed',
-  value: 300
-},
-{
-  name: 'Referral',
-  value: 200
-}];
-
-const COLORS = ['#0F4C81', '#4A90E2', '#00C48C', '#F5A623'];
-const funnelData = [
-{
-  name: 'Applied',
-  value: 1000
-},
-{
-  name: 'Screening',
-  value: 400
-},
-{
-  name: 'Interview',
-  value: 150
-},
-{
-  name: 'Offer',
-  value: 20
-},
-{
-  name: 'Hired',
-  value: 15
-}];
+} from 'recharts';
+import { FormAlert } from '../../components/FormAlert';
+import { ExportCsvButton } from '../../components/ExportCsvButton';
+import { ApiError } from '../../lib/api';
+import {
+  exportEmployerApplications,
+  getEmployerAnalytics,
+} from '../../services/analyticsService';
+import type { EmployerAnalytics } from '../../types/analytics';
 
 export function EmployerAnalyticsPage() {
+  const [analytics, setAnalytics] = useState<EmployerAnalytics | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getEmployerAnalytics()
+      .then((data) => {
+        if (!cancelled) setAnalytics(data);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(
+            err instanceof ApiError ? err.message : 'Failed to load analytics.',
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !analytics) {
+    return <FormAlert message={error ?? 'Analytics unavailable.'} />;
+  }
+
+  const funnelData = [
+    { stage: 'Submitted', count: analytics.funnel.submitted },
+    { stage: 'Reviewing', count: analytics.funnel.reviewing },
+    { stage: 'Shortlisted', count: analytics.funnel.shortlisted },
+    { stage: 'Interview', count: analytics.funnel.interviewScheduled },
+    { stage: 'Offer', count: analytics.funnel.offerExtended },
+    { stage: 'Hired', count: analytics.funnel.hired },
+    { stage: 'Rejected', count: analytics.funnel.rejected },
+  ];
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          Analytics Dashboard
-        </h1>
-        <p className="text-slate-500 mt-1">
-          Track your hiring performance and job metrics.
-        </p>
+    <div className="max-w-5xl mx-auto space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Hiring analytics</h1>
+          <p className="text-slate-600 mt-1">
+            Funnel performance across all your job postings.
+          </p>
+        </div>
+        <ExportCsvButton
+          label="Export all applications"
+          onExport={exportEmployerApplications}
+        />
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[
-        {
-          title: 'Total Job Views',
-          value: '12,450',
-          trend: '+15%',
-          icon: <Eye size={24} />,
-          color: 'text-primary',
-          bg: 'bg-primary-50'
-        },
-        {
-          title: 'Total Applications',
-          value: '842',
-          trend: '+8%',
-          icon: <Users size={24} />,
-          color: 'text-secondary',
-          bg: 'bg-secondary/10'
-        },
-        {
-          title: 'Avg Time to Hire',
-          value: '18 Days',
-          trend: '-2 days',
-          icon: <Clock size={24} />,
-          color: 'text-success',
-          bg: 'bg-success/10'
-        },
-        {
-          title: 'Conversion Rate',
-          value: '6.8%',
-          trend: '+1.2%',
-          icon: <TrendingUp size={24} />,
-          color: 'text-warning',
-          bg: 'bg-warning/10'
-        }].
-        map((stat, i) =>
-        <div
-          key={i}
-          className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200">
-          
-            <div className="flex items-center justify-between mb-4">
-              <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.bg} ${stat.color}`}>
-              
-                {stat.icon}
-              </div>
-              <span className="text-sm font-bold text-success bg-success/10 px-2.5 py-1 rounded-full">
-                {stat.trend}
-              </span>
-            </div>
-            <h3 className="text-slate-500 text-sm font-medium">{stat.title}</h3>
-            <p className="text-2xl font-bold text-slate-900 mt-1">
-              {stat.value}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Applications Over Time */}
-        <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">
-            Applications (Last 7 Days)
-          </h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={lineData}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="#e2e8f0" />
-                
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fill: '#64748b'
-                  }} />
-                
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fill: '#64748b'
-                  }} />
-                
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: '12px',
-                    border: 'none',
-                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                  }} />
-                
-                <Line
-                  type="monotone"
-                  dataKey="applications"
-                  stroke="#0F4C81"
-                  strokeWidth={3}
-                  dot={{
-                    r: 4,
-                    fill: '#0F4C81'
-                  }}
-                  activeDot={{
-                    r: 6
-                  }} />
-                
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Hire rate</p>
+          <p className="text-3xl font-bold text-slate-900 mt-1">
+            {analytics.hireRatePercent.toFixed(1)}%
+          </p>
         </div>
-
-        {/* Source Breakdown */}
-        <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">
-            Application Sources
-          </h3>
-          <div className="h-72 flex items-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={sourceData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={5}
-                  dataKey="value">
-                  
-                  {sourceData.map((entry, index) =>
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]} />
-
-                  )}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: '12px',
-                    border: 'none',
-                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                  }} />
-                
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="space-y-3">
-              {sourceData.map((entry, index) =>
-              <div key={index} className="flex items-center gap-2">
-                  <div
-                  className="w-3 h-3 rounded-full"
-                  style={{
-                    backgroundColor: COLORS[index % COLORS.length]
-                  }}>
-                </div>
-                  <span className="text-sm text-slate-600">{entry.name}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Hiring Funnel */}
-        <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200 lg:col-span-2">
-          <h3 className="text-lg font-bold text-slate-900 mb-6">
-            Hiring Pipeline Funnel
-          </h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={funnelData}
-                layout="vertical"
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5
-                }}>
-                
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  horizontal={false}
-                  stroke="#e2e8f0" />
-                
-                <XAxis
-                  type="number"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fill: '#64748b'
-                  }} />
-                
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{
-                    fill: '#64748b',
-                    fontWeight: 'bold'
-                  }} />
-                
-                <Tooltip
-                  cursor={{
-                    fill: '#f8fafc'
-                  }}
-                  contentStyle={{
-                    borderRadius: '12px',
-                    border: 'none',
-                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                  }} />
-                
-                <Bar
-                  dataKey="value"
-                  fill="#4A90E2"
-                  radius={[0, 4, 4, 0]}
-                  barSize={32} />
-                
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Shortlist → hire rate</p>
+          <p className="text-3xl font-bold text-slate-900 mt-1">
+            {analytics.shortlistToHireRatePercent.toFixed(1)}%
+          </p>
         </div>
       </div>
-    </div>);
 
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <h2 className="font-bold text-slate-900 mb-4">Application funnel</h2>
+        <div className="h-72">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={funnelData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="stage" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {analytics.topJobsByApplicants.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <h2 className="font-bold text-slate-900 mb-4">Top jobs by applicants</h2>
+          <ul className="divide-y divide-slate-100">
+            {analytics.topJobsByApplicants.map((j) => (
+              <li
+                key={j.jobId}
+                className="py-3 flex items-center justify-between text-sm">
+                <span className="font-medium text-slate-900">{j.jobTitle}</span>
+                <span className="text-slate-500">
+                  {j.applicantCount} applicants · {j.hiredCount} hired
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
 }

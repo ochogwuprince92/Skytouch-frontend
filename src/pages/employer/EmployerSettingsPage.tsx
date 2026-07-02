@@ -4,8 +4,10 @@ import {
   Users,
   CreditCard,
   Bell,
-  Link as LinkIcon } from
+  Link as LinkIcon,
+  Lock } from
 'lucide-react';
+import { Link } from 'react-router-dom';
 export function EmployerSettingsPage() {
   const [activeTab, setActiveTab] = useState('account');
   const tabs = [
@@ -84,29 +86,19 @@ export function EmployerSettingsPage() {
                   </p>
                 </div>
                 <div className="pt-4 border-t border-slate-200">
-                  <h3 className="text-md font-bold text-slate-900 mb-4">
-                    Change Password
+                  <h3 className="text-md font-bold text-slate-900 mb-2">
+                    Password & security
                   </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
-                        Current Password
-                      </label>
-                      <input
-                      type="password"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
-                    
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-slate-700 mb-2">
-                        New Password
-                      </label>
-                      <input
-                      type="password"
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
-                    
-                    </div>
-                  </div>
+                  <p className="text-sm text-slate-500 mb-4">
+                    Change your password or deactivate your account from the
+                    shared security settings page.
+                  </p>
+                  <Link
+                    to="/settings/account"
+                    className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary-600">
+                    <Lock size={16} />
+                    Manage account security
+                  </Link>
                 </div>
                 <div className="flex justify-end pt-4">
                   <button
