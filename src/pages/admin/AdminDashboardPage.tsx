@@ -1,232 +1,282 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Users,
   Building2,
   Briefcase,
-  DollarSign,
-  TrendingUp,
+  FileText,
+  UserCheck,
   AlertCircle,
-  CheckCircle2,
-  ArrowRight } from
-'lucide-react';
-import { motion } from 'framer-motion';
+  Loader2,
+  ArrowRight,
+} from 'lucide-react';
+import { FormAlert } from '../../components/FormAlert';
+import { ExportCsvButton } from '../../components/ExportCsvButton';
+import { ApiError } from '../../lib/api';
+import { getAdminDashboard, getPlatformAnalytics, exportCsv } from '../../services/adminService';
+import type { AdminDashboard, PlatformAnalytics } from '../../types/admin';
+
 export function AdminDashboardPage() {
+  const [dashboard, setDashboard] = useState<AdminDashboard | null>(null);
+  const [analytics, setAnalytics] = useState<PlatformAnalytics | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const [data, platform] = await Promise.all([
+          getAdminDashboard(),
+          getPlatformAnalytics().catch(() => null),
+        ]);
+        if (!cancelled) {
+          setDashboard(data);
+          setAnalytics(platform);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof ApiError ? err.message : 'Failed to load dashboard.',
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-danger" />
+      </div>
+    );
+  }
+
+  if (error || !dashboard) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <FormAlert message={error ?? 'Dashboard unavailable.'} />
+      </div>
+    );
+  }
+
   const stats = [
-  {
-    label: 'Total Users',
-    value: '124,592',
-    change: '+12%',
-    icon: <Users size={24} />,
-    color: 'text-blue-600',
-    bg: 'bg-blue-50'
-  },
-  {
-    label: 'Active Employers',
-    value: '8,430',
-    change: '+5%',
-    icon: <Building2 size={24} />,
-    color: 'text-purple-600',
-    bg: 'bg-purple-50'
-  },
-  {
-    label: 'Live Jobs',
-    value: '45,210',
-    change: '+18%',
-    icon: <Briefcase size={24} />,
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-50'
-  },
-  {
-    label: 'Monthly MRR',
-    value: '$1.2M',
-    change: '+8%',
-    icon: <DollarSign size={24} />,
-    color: 'text-orange-600',
-    bg: 'bg-orange-50'
-  }];
+    {
+      label: 'Total users',
+      value: dashboard.totalUsers.toLocaleString(),
+      icon: Users,
+      color: 'text-blue-600',
+      bg: 'bg-blue-50',
+    },
+    {
+      label: 'Job seekers',
+      value: dashboard.jobSeekers.toLocaleString(),
+      icon: Users,
+      color: 'text-indigo-600',
+      bg: 'bg-indigo-50',
+    },
+    {
+      label: 'Employers',
+      value: dashboard.employers.toLocaleString(),
+      icon: Building2,
+      color: 'text-purple-600',
+      bg: 'bg-purple-50',
+    },
+    {
+      label: 'Active jobs',
+      value: dashboard.activeJobs.toLocaleString(),
+      icon: Briefcase,
+      color: 'text-emerald-600',
+      bg: 'bg-emerald-50',
+    },
+    {
+      label: 'Applications',
+      value: dashboard.totalApplications.toLocaleString(),
+      icon: FileText,
+      color: 'text-orange-600',
+      bg: 'bg-orange-50',
+    },
+    {
+      label: 'Total hires',
+      value: dashboard.totalHires.toLocaleString(),
+      icon: UserCheck,
+      color: 'text-teal-600',
+      bg: 'bg-teal-50',
+    },
+  ];
 
-  const pendingApprovals = [
-  {
-    id: 1,
-    company: 'Stark Industries',
-    industry: 'Defense',
-    requested: '2 hours ago',
-    status: 'Pending'
-  },
-  {
-    id: 2,
-    company: 'Wayne Enterprises',
-    industry: 'Conglomerate',
-    requested: '5 hours ago',
-    status: 'Pending'
-  },
-  {
-    id: 3,
-    company: 'Acme Corp',
-    industry: 'Manufacturing',
-    requested: '1 day ago',
-    status: 'Pending'
-  }];
-
-  const recentActivity = [
-  {
-    id: 1,
-    text: 'New enterprise subscription: TechNova',
-    time: '10 mins ago',
-    type: 'success'
-  },
-  {
-    id: 2,
-    text: 'Job flagged for moderation: "Data Entry"',
-    time: '1 hour ago',
-    type: 'warning'
-  },
-  {
-    id: 3,
-    text: 'System backup completed successfully',
-    time: '3 hours ago',
-    type: 'info'
-  },
-  {
-    id: 4,
-    text: 'Failed login attempts spike detected',
-    time: '5 hours ago',
-    type: 'danger'
-  }];
+  const pendingItems = [
+    {
+      label: 'Pending companies',
+      count: dashboard.pendingCompanies,
+      href: '/admin/employers',
+    },
+    {
+      label: 'Pending email verifications',
+      count: dashboard.pendingEmailVerifications,
+      href: '/admin/users',
+    },
+    {
+      label: 'Pending accounts',
+      count: dashboard.pendingAccounts,
+      href: '/admin/users',
+    },
+  ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">
-          Platform Overview
-        </h1>
-        <p className="text-slate-600">
-          Monitor platform health, user growth, and pending actions.
-        </p>
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Admin dashboard</h1>
+          <p className="text-slate-500 mt-1">
+            Platform overview and items needing attention.
+          </p>
+        </div>
+        <ExportCsvButton
+          label="Export applications"
+          onExport={() => exportCsv('applications')}
+        />
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {stats.map((stat, index) =>
-        <motion.div
-          key={stat.label}
-          initial={{
-            opacity: 0,
-            y: 20
-          }}
-          animate={{
-            opacity: 1,
-            y: 0
-          }}
-          transition={{
-            duration: 0.3,
-            delay: index * 0.1
-          }}
-          className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          
-            <div className="flex items-center justify-between mb-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+            <div className="flex items-center gap-3 mb-3">
               <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.bg} ${stat.color}`}>
-              
-                {stat.icon}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center ${stat.bg} ${stat.color}`}>
+                <stat.icon size={20} />
               </div>
-              <span className="flex items-center text-sm font-bold text-success bg-success/10 px-2 py-1 rounded-lg">
-                <TrendingUp size={14} className="mr-1" /> {stat.change}
-              </span>
+              <p className="text-sm font-medium text-slate-500">{stat.label}</p>
             </div>
-            <p className="text-3xl font-bold text-slate-900 mb-1">
-              {stat.value}
-            </p>
-            <p className="text-sm font-medium text-slate-500">{stat.label}</p>
-          </motion.div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Pending Approvals */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-slate-900">
-                  Pending Employer Approvals
-                </h2>
-                <span className="bg-danger text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  5
-                </span>
-              </div>
-              <button className="text-sm font-semibold text-danger hover:text-danger/80">
-                View all
-              </button>
-            </div>
-            <div className="divide-y divide-slate-100">
-              {pendingApprovals.map((company) =>
-              <div
-                key={company.id}
-                className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition-colors">
-                
-                  <div>
-                    <h3 className="font-bold text-slate-900">
-                      {company.company}
-                    </h3>
-                    <p className="text-sm text-slate-500">
-                      {company.industry} • Requested {company.requested}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <button className="flex-1 sm:flex-none px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors">
-                      Review
-                    </button>
-                    <button className="flex-1 sm:flex-none px-4 py-2 bg-success text-white rounded-lg text-sm font-semibold hover:bg-success/90 transition-colors flex items-center justify-center gap-1">
-                      <CheckCircle2 size={16} /> Approve
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
           </div>
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <AlertCircle size={20} className="text-warning" />
+            Needs attention
+          </h2>
+          <ul className="space-y-3">
+            {pendingItems.map((item) => (
+              <li key={item.label}>
+                <Link
+                  to={item.href}
+                  className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors group">
+                  <span className="text-sm font-medium text-slate-700">
+                    {item.label}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-slate-900">
+                      {item.count}
+                    </span>
+                    <ArrowRight
+                      size={16}
+                      className="text-slate-400 group-hover:text-danger"
+                    />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
 
-        {/* Right Column - System Activity */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-            <h2 className="text-lg font-bold text-slate-900 mb-6">
-              Recent Activity
-            </h2>
-            <div className="space-y-6">
-              {recentActivity.map((activity) =>
-              <div key={activity.id} className="flex gap-4">
-                  <div className="mt-0.5">
-                    {activity.type === 'success' &&
-                  <CheckCircle2 size={18} className="text-success" />
-                  }
-                    {activity.type === 'warning' &&
-                  <AlertCircle size={18} className="text-warning" />
-                  }
-                    {activity.type === 'danger' &&
-                  <AlertCircle size={18} className="text-danger" />
-                  }
-                    {activity.type === 'info' &&
-                  <div className="w-4 h-4 rounded-full bg-blue-500 mt-0.5" />
-                  }
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">
-                      {activity.text}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              )}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900 mb-4">System</h2>
+          <dl className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-slate-500">Admins</dt>
+              <dd className="font-semibold text-slate-900">{dashboard.admins}</dd>
             </div>
-            <button className="w-full mt-6 py-2 bg-slate-50 text-slate-700 font-semibold rounded-lg hover:bg-slate-100 transition-colors text-sm flex items-center justify-center gap-1">
-              View full audit log <ArrowRight size={16} />
-            </button>
-          </div>
+            <div className="flex justify-between">
+              <dt className="text-slate-500">Audit events</dt>
+              <dd className="font-semibold text-slate-900">
+                {dashboard.totalAuditEvents.toLocaleString()}
+              </dd>
+            </div>
+          </dl>
+          <Link
+            to="/admin/audit"
+            className="inline-flex items-center gap-1 mt-4 text-sm font-semibold text-danger hover:underline">
+            View audit log <ArrowRight size={14} />
+          </Link>
         </div>
       </div>
-    </div>);
 
+      {analytics && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-900 mb-4">
+            Platform analytics
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                Hire rate
+              </p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">
+                {analytics.platformHireRatePercent.toFixed(1)}%
+              </p>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                Funnel total
+              </p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">
+                {analytics.applicationFunnel.total.toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                Hired
+              </p>
+              <p className="text-2xl font-bold text-emerald-600 mt-1">
+                {analytics.applicationFunnel.hired.toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-xl bg-slate-50 p-4">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                Pending companies
+              </p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">
+                {analytics.pendingCompanies.toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <dl className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+            {(
+              [
+                ['Submitted', analytics.applicationFunnel.submitted],
+                ['Reviewing', analytics.applicationFunnel.reviewing],
+                ['Shortlisted', analytics.applicationFunnel.shortlisted],
+                ['Interview scheduled', analytics.applicationFunnel.interviewScheduled],
+                ['Offer extended', analytics.applicationFunnel.offerExtended],
+                ['Offer declined', analytics.applicationFunnel.offerDeclined],
+                ['Rejected', analytics.applicationFunnel.rejected],
+                ['Withdrawn', analytics.applicationFunnel.withdrawn],
+              ] as const
+            ).map(([label, value]) => (
+              <div
+                key={label}
+                className="flex justify-between rounded-lg border border-slate-100 px-3 py-2">
+                <dt className="text-slate-500">{label}</dt>
+                <dd className="font-semibold text-slate-900">
+                  {value.toLocaleString()}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      )}
+    </div>
+  );
 }

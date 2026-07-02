@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   MapPin,
   Building2,
@@ -7,133 +7,96 @@ import {
   ExternalLink,
   Plus,
   CheckCircle2,
-  Clock,
-  DollarSign,
-  BookmarkPlus,
   Calendar,
-  Heart,
-  Coffee,
-  Laptop,
-  GraduationCap } from
-'lucide-react';
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link, useParams } from 'react-router-dom';
-// Mock Data
-const companyData = {
-  id: 1,
-  name: 'TechNova',
-  logo: 'TN',
-  color: 'bg-blue-500',
-  industry: 'Enterprise Software',
-  location: 'Lagos, Nigeria & San Francisco, CA',
-  size: '500-1000 employees',
-  rating: 4.8,
-  founded: '2015',
-  followers: '45.2k',
-  openJobs: 24,
-  website: 'https://technova.example.com',
-  coverImage:
-  'https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80',
-  about:
-  'TechNova is a leading provider of cloud-based enterprise software solutions empowering businesses across Africa and globally to scale. We build the infrastructure that powers modern commerce, enabling thousands of businesses to accept payments, manage operations, and grow their revenue. Our mission is to accelerate the digital economy through world-class engineering and design.',
-  specialties: [
-  'Fintech',
-  'Cloud Infrastructure',
-  'Payment Processing',
-  'Enterprise Software',
-  'B2B',
-  'SaaS'],
+import { Loader2 } from 'lucide-react';
+import { FormAlert } from '../components/FormAlert';
+import { JobCard } from '../components/JobCard';
+import { useAuth } from '../context/AuthContext';
+import { ApiError } from '../lib/api';
+import { companyColor, companyInitials } from '../lib/format';
+import { getCompany } from '../services/companyService';
+import { getCompanyJobs } from '../services/jobService';
+import type { CompanyDetail } from '../types/company';
+import type { JobSummary } from '../types/job';
 
-  perks: [
-  {
-    icon: <Heart size={20} />,
-    title: 'Comprehensive Healthcare',
-    desc: 'Full medical, dental, and vision coverage for you and your dependents.'
-  },
-  {
-    icon: <Laptop size={20} />,
-    title: 'Remote-First Culture',
-    desc: 'Work from anywhere with a generous home office stipend.'
-  },
-  {
-    icon: <GraduationCap size={20} />,
-    title: 'Learning Budget',
-    desc: '$2,000 annual stipend for courses, conferences, and books.'
-  },
-  {
-    icon: <Coffee size={20} />,
-    title: 'Wellness Programs',
-    desc: 'Monthly wellness allowance and free access to mental health resources.'
-  }],
-
-  gallery: [
-  'https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1556761175-4b46a572b786?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1531482615713-2afd69097998?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'],
-
-  jobs: [
-  {
-    id: 101,
-    title: 'Senior Frontend Engineer',
-    type: 'Full-time',
-    location: 'Lagos, Nigeria (Hybrid)',
-    salary: '$80k - $120k',
-    postedAt: '2 days ago',
-    tags: ['React', 'TypeScript', 'Tailwind']
-  },
-  {
-    id: 102,
-    title: 'Product Manager',
-    type: 'Full-time',
-    location: 'Remote (EMEA)',
-    salary: '$100k - $140k',
-    postedAt: '1 week ago',
-    tags: ['B2B', 'SaaS', 'Agile']
-  },
-  {
-    id: 103,
-    title: 'DevOps Engineer',
-    type: 'Full-time',
-    location: 'San Francisco, CA',
-    salary: '$150k - $180k',
-    postedAt: '3 days ago',
-    tags: ['AWS', 'Kubernetes', 'CI/CD']
-  }],
-
-  reviews: [
-  {
-    id: 1,
-    author: 'Current Employee, Engineering',
-    rating: 5,
-    date: 'Oct 2023',
-    title: 'Amazing culture and challenging problems',
-    content:
-    'The engineering culture here is top-notch. We are solving real problems at scale. Leadership is transparent and truly cares about employee well-being.'
-  },
-  {
-    id: 2,
-    author: 'Former Employee, Product',
-    rating: 4,
-    date: 'Aug 2023',
-    title: 'Great place to grow, fast-paced',
-    content:
-    'Learned a lot during my time here. The pace is very fast, which can be challenging but also rewarding. Benefits are excellent.'
-  }]
-
-};
 export function CompanyDetailsPage() {
   const { id } = useParams();
+  const { isAuthenticated, user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [isFollowing, setIsFollowing] = useState(false);
-  // In a real app, fetch company data based on ID. Using mock data here.
-  const company = companyData;
+  const [company, setCompany] = useState<CompanyDetail | null>(null);
+  const [jobs, setJobs] = useState<JobSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    const companyId = id;
+    let cancelled = false;
+
+    async function load() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [companyData, jobsData] = await Promise.all([
+          getCompany(companyId),
+          getCompanyJobs(companyId, 0, 10),
+        ]);
+        if (!cancelled) {
+          setCompany(companyData);
+          setJobs(jobsData.content);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof ApiError ? err.message : 'Failed to load company.',
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center pt-24">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !company) {
+    return (
+      <div className="pt-24 pb-20 max-w-2xl mx-auto px-4">
+        <FormAlert message={error ?? 'Company not found.'} />
+        <Link to="/companies" className="mt-6 inline-block text-primary font-semibold">
+          ← Back to companies
+        </Link>
+      </div>
+    );
+  }
+
+  const color = companyColor(company.name);
+  const logo = companyInitials(company.name);
+  const coverImage =
+    company.coverUrl ??
+    'https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80';
+  const perks = company.specialties?.map((title) => ({ icon: null, title, desc: '' })) ?? [];
   return (
     <div className="bg-slate-50 min-h-screen pb-20">
       {/* Cover Banner */}
       <div className="h-64 md:h-80 w-full relative">
         <img
-          src={company.coverImage}
+          src={coverImage}
           alt={`${company.name} office`}
           className="w-full h-full object-cover" />
         
@@ -146,9 +109,16 @@ export function CompanyDetailsPage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="flex flex-col md:flex-row items-start md:items-end gap-6">
               <div
-                className={`w-24 h-24 md:w-32 md:h-32 rounded-2xl flex items-center justify-center text-white font-bold text-4xl md:text-5xl ${company.color} shadow-lg border-4 border-white shrink-0`}>
-                
-                {company.logo}
+                className={`w-24 h-24 md:w-32 md:h-32 rounded-2xl flex items-center justify-center text-white font-bold text-4xl md:text-5xl ${color} shadow-lg border-4 border-white shrink-0 overflow-hidden`}>
+                {company.logoUrl ? (
+                  <img
+                    src={company.logoUrl}
+                    alt={company.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  logo
+                )}
               </div>
               <div className="pb-2">
                 <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
@@ -157,17 +127,17 @@ export function CompanyDetailsPage() {
                 <div className="flex flex-wrap items-center gap-4 text-slate-600 text-sm md:text-base">
                   <span className="flex items-center">
                     <Building2 size={18} className="mr-1.5 text-slate-400" />{' '}
-                    {company.industry}
+                    {company.industry ?? '—'}
                   </span>
                   <span className="hidden md:inline text-slate-300">•</span>
                   <span className="flex items-center">
                     <Users size={18} className="mr-1.5 text-slate-400" />{' '}
-                    {company.size}
+                    {company.size ?? '—'}
                   </span>
                   <span className="hidden md:inline text-slate-300">•</span>
                   <span className="flex items-center">
                     <MapPin size={18} className="mr-1.5 text-slate-400" />{' '}
-                    {company.location}
+                    {company.location ?? '—'}
                   </span>
                 </div>
               </div>
@@ -181,6 +151,7 @@ export function CompanyDetailsPage() {
                 {isFollowing ? <CheckCircle2 size={20} /> : <Plus size={20} />}
                 {isFollowing ? 'Following' : 'Follow'}
               </button>
+              {company.website && (
               <a
                 href={company.website}
                 target="_blank"
@@ -190,6 +161,7 @@ export function CompanyDetailsPage() {
                 <ExternalLink size={20} />
                 Visit Website
               </a>
+              )}
             </div>
           </div>
 
@@ -200,7 +172,7 @@ export function CompanyDetailsPage() {
                 Open Roles
               </p>
               <p className="text-2xl font-bold text-slate-900">
-                {company.openJobs}
+                {company.openJobsCount ?? 0}
               </p>
             </div>
             <div className="text-center md:text-left">
@@ -208,20 +180,20 @@ export function CompanyDetailsPage() {
                 Followers
               </p>
               <p className="text-2xl font-bold text-slate-900">
-                {company.followers}
+                {company.followersCount ?? '—'}
               </p>
             </div>
             <div className="text-center md:text-left">
               <p className="text-slate-500 text-sm font-medium mb-1">Founded</p>
               <p className="text-2xl font-bold text-slate-900">
-                {company.founded}
+                {company.founded ?? '—'}
               </p>
             </div>
             <div className="text-center md:text-left">
               <p className="text-slate-500 text-sm font-medium mb-1">Rating</p>
               <div className="flex items-center justify-center md:justify-start gap-1">
                 <p className="text-2xl font-bold text-slate-900">
-                  {company.rating}
+                  {(company.rating ?? 0).toFixed(1)}
                 </p>
                 <Star size={20} className="text-yellow-500 fill-yellow-500" />
               </div>
@@ -240,7 +212,7 @@ export function CompanyDetailsPage() {
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
               {tab === 'jobs' &&
             <span className="ml-2 bg-primary-50 text-primary px-2 py-0.5 rounded-full text-xs">
-                  {company.openJobs}
+                  {company.openJobsCount ?? 0}
                 </span>
             }
             </button>
@@ -270,7 +242,7 @@ export function CompanyDetailsPage() {
                     About {company.name}
                   </h2>
                   <p className="text-slate-600 leading-relaxed text-lg">
-                    {company.about}
+                    {company.description ?? 'No description available.'}
                   </p>
 
                   <div className="mt-8">
@@ -278,7 +250,7 @@ export function CompanyDetailsPage() {
                       Specialties
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {company.specialties.map((spec) =>
+                      {(company.specialties ?? []).map((spec) =>
                     <span
                       key={spec}
                       className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-lg text-slate-700 text-sm font-medium">
@@ -290,44 +262,27 @@ export function CompanyDetailsPage() {
                   </div>
                 </section>
 
+                {(company.specialties ?? []).length > 0 && (
                 <section className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm mb-8">
                   <h2 className="text-2xl font-bold text-slate-900 mb-6">
                     Perks & Benefits
                   </h2>
                   <div className="grid sm:grid-cols-2 gap-6">
-                    {company.perks.map((perk, i) =>
+                    {perks.map((perk, i) => (
                   <div key={i} className="flex gap-4">
                         <div className="w-12 h-12 rounded-xl bg-primary-50 text-primary flex items-center justify-center shrink-0">
-                          {perk.icon}
+                          <Building2 size={20} />
                         </div>
                         <div>
                           <h4 className="font-bold text-slate-900 mb-1">
                             {perk.title}
                           </h4>
-                          <p className="text-slate-600 text-sm leading-relaxed">
-                            {perk.desc}
-                          </p>
                         </div>
                       </div>
-                  )}
+                    ))}
                   </div>
                 </section>
-
-                <section className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-6">
-                    Office & Culture
-                  </h2>
-                  <div className="grid grid-cols-2 gap-4">
-                    {company.gallery.map((img, i) =>
-                  <img
-                    key={i}
-                    src={img}
-                    alt="Office"
-                    className="w-full h-48 object-cover rounded-xl hover:opacity-90 transition-opacity cursor-pointer" />
-
-                  )}
-                  </div>
-                </section>
+                )}
               </motion.div>
             }
 
@@ -360,64 +315,15 @@ export function CompanyDetailsPage() {
                   </div>
                 </div>
 
-                {company.jobs.map((job) =>
-              <div
-                key={job.id}
-                className="bg-white p-6 rounded-2xl border border-slate-200 hover:border-primary/30 hover:shadow-card transition-all group">
-                
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <Link
-                      to={`/jobs/${job.id}`}
-                      className="text-xl font-bold text-slate-900 group-hover:text-primary transition-colors">
-                      
-                          {job.title}
-                        </Link>
-                        <div className="flex flex-wrap gap-3 mt-3">
-                          <div className="flex items-center text-sm text-slate-600">
-                            <MapPin
-                          size={14}
-                          className="mr-1.5 text-slate-400" />
-                        {' '}
-                            {job.location}
-                          </div>
-                          <div className="flex items-center text-sm text-slate-600">
-                            <Clock
-                          size={14}
-                          className="mr-1.5 text-slate-400" />
-                        {' '}
-                            {job.type}
-                          </div>
-                          <div className="flex items-center text-sm text-slate-600">
-                            <DollarSign
-                          size={14}
-                          className="mr-1.5 text-slate-400" />
-                        {' '}
-                            {job.salary}
-                          </div>
-                        </div>
-                      </div>
-                      <button className="text-slate-400 hover:text-primary transition-colors p-2 hover:bg-primary-50 rounded-lg">
-                        <BookmarkPlus size={20} />
-                      </button>
-                    </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-100 mt-4">
-                      <div className="flex gap-2">
-                        {job.tags.map((tag) =>
-                    <span
-                      key={tag}
-                      className="text-xs font-medium text-primary bg-primary-50 px-2.5 py-1 rounded-md">
-                      
-                            {tag}
-                          </span>
-                    )}
-                      </div>
-                      <span className="text-xs text-slate-400 font-medium">
-                        {job.postedAt}
-                      </span>
-                    </div>
-                  </div>
-              )}
+                {jobs.length === 0 ? (
+                  <p className="text-slate-500 text-center py-12">
+                    No open roles at this company right now.
+                  </p>
+                ) : (
+                  jobs.map((job) => (
+                    <JobCard key={job.id} job={job} showSave={false} />
+                  ))
+                )}
               </motion.div>
             }
 
@@ -436,84 +342,8 @@ export function CompanyDetailsPage() {
                 duration: 0.3
               }}>
               
-                <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200 shadow-sm mb-8 flex items-center gap-8">
-                  <div className="text-center">
-                    <div className="text-5xl font-bold text-slate-900 mb-2">
-                      {company.rating}
-                    </div>
-                    <div className="flex justify-center mb-1">
-                      {[1, 2, 3, 4, 5].map((star) =>
-                    <Star
-                      key={star}
-                      size={20}
-                      className={
-                      star <= Math.floor(company.rating) ?
-                      'text-yellow-500 fill-yellow-500' :
-                      'text-slate-200 fill-slate-200'
-                      } />
-
-                    )}
-                    </div>
-                    <div className="text-sm text-slate-500">
-                      Based on 124 reviews
-                    </div>
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    {[5, 4, 3, 2, 1].map((star) =>
-                  <div
-                    key={star}
-                    className="flex items-center gap-3 text-sm">
-                    
-                        <span className="w-3">{star}</span>
-                        <Star size={12} className="text-slate-400" />
-                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                        className="h-full bg-yellow-500 rounded-full"
-                        style={{
-                          width:
-                          star === 5 ? '70%' : star === 4 ? '20%' : '5%'
-                        }}>
-                      </div>
-                        </div>
-                      </div>
-                  )}
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  {company.reviews.map((review) =>
-                <div
-                  key={review.id}
-                  className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-                  
-                      <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h4 className="font-bold text-slate-900 text-lg">
-                            {review.title}
-                          </h4>
-                          <div className="text-sm text-slate-500 mt-1">
-                            {review.author} • {review.date}
-                          </div>
-                        </div>
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) =>
-                      <Star
-                        key={star}
-                        size={16}
-                        className={
-                        star <= review.rating ?
-                        'text-yellow-500 fill-yellow-500' :
-                        'text-slate-200 fill-slate-200'
-                        } />
-
-                      )}
-                        </div>
-                      </div>
-                      <p className="text-slate-600 leading-relaxed">
-                        {review.content}
-                      </p>
-                    </div>
-                )}
+                <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm text-center text-slate-500">
+                  Employee reviews are not available yet.
                 </div>
               </motion.div>
             }
@@ -640,9 +470,19 @@ export function CompanyDetailsPage() {
                 Get notified when {company.name} posts new roles that match your
                 skills.
               </p>
-              <button className="w-full bg-primary text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-primary-600 transition-colors shadow-soft">
-                Create Job Alert
-              </button>
+              {isAuthenticated && user?.role === 'JOB_SEEKER' ? (
+                <Link
+                  to={`/seeker/alerts?create=1&keyword=${encodeURIComponent(company.name)}${company.industry ? `&industry=${encodeURIComponent(company.industry)}` : ''}`}
+                  className="block w-full text-center bg-primary text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-primary-600 transition-colors shadow-soft">
+                  Create job alert
+                </Link>
+              ) : (
+                <Link
+                  to="/login"
+                  className="block w-full text-center bg-primary text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-primary-600 transition-colors shadow-soft">
+                  Sign in to create alert
+                </Link>
+              )}
             </div>
           </div>
         </div>

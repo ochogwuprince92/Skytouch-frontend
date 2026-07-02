@@ -70,7 +70,7 @@ export function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                to="/auth/register?role=employer"
+                to="/register?role=employer"
                 className="w-full sm:w-auto bg-white text-slate-900 px-8 py-4 rounded-xl font-bold hover:bg-slate-100 transition-colors">
                 
                 Start Hiring Now
