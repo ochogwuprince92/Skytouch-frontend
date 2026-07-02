@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Loader2, Plus } from 'lucide-react';
 import { FormAlert } from '../../components/FormAlert';
 import { PaginatedList } from '../../components/PaginatedList';
-import { StateSelect } from '../../components/StateSelect';
+import { LocationSelect } from '../../components/LocationSelect';
 import { ExportCsvButton } from '../../components/ExportCsvButton';
 import { ApiError } from '../../lib/api';
 import {
@@ -215,7 +215,10 @@ export function EmployerJobsPage() {
               className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
             />
           </div>
-          <StateSelect value={locationState} onChange={setLocationState} />
+          <LocationSelect
+            stateValue={locationState}
+            onStateChange={setLocationState}
+          />
           <input
             value={locationLga}
             onChange={(e) => setLocationLga(e.target.value)}

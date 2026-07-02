@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Upload } from 'lucide-react';
 import { FormAlert } from '../../components/FormAlert';
-import { StateSelect } from '../../components/StateSelect';
+import { LocationSelect } from '../../components/LocationSelect';
 import { ApiError } from '../../lib/api';
 import {
   completeOnboarding,
@@ -207,7 +207,10 @@ export function SeekerProfilePage() {
             <option value="OTHER">Other</option>
           </select>
         </div>
-        <StateSelect value={addressState} onChange={setAddressState} />
+        <LocationSelect
+          stateValue={addressState}
+          onStateChange={setAddressState}
+        />
         <input
           value={addressLga}
           onChange={(e) => setAddressLga(e.target.value)}

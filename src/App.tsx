@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { prefetchCountries } from './services/locationService';
 import { GuestRoute, ProtectedRoute } from './components/ProtectedRoute';
 import { PublicLayout } from './layouts/PublicLayout';
 import { LandingPage } from './pages/LandingPage';
@@ -48,6 +49,10 @@ import { EmployerOnboardingPage } from './pages/employer/EmployerOnboardingPage'
 import { ApplicationDetailPage } from './pages/applications/ApplicationDetailPage';
 
 export function App() {
+  useEffect(() => {
+    prefetchCountries();
+  }, []);
+
   return (
     <AuthProvider>
       <BrowserRouter>
