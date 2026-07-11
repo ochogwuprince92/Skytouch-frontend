@@ -18,6 +18,7 @@ export const authApi = {
     middleName?: string
     lastName: string
     phone: string
+    userType: 'JOB_SEEKER' | 'EMPLOYER'
   }) => {
     const res = await fetch(`${BASE_URL}/api/auth/register`, {
       method: 'POST',
@@ -27,13 +28,12 @@ export const authApi = {
     if (!res.ok) throw new Error((await res.json()).message || 'Registration failed')
     return res.json()
   },
-
-  // POST /api/auth/verify-email
+  // POST /api/auth/verify-email/{email}
   verifyEmail: async (data: { email: string; otp: string }) => {
-    const res = await fetch(`${BASE_URL}/api/auth/verify-email`, {
+    const res = await fetch(`${BASE_URL}/api/auth/verify-email/${encodeURIComponent(data.email)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ otp: data.otp }), // ← only otp in body, email in URL
     })
     if (!res.ok) throw new Error((await res.json()).message || 'Verification failed')
     return res.json()

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { authApi, tokenStorage } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { dashboardPathForRole } from '../../lib/roleRoutes';
 
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -11,26 +12,21 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { login } = useAuth(); // ← use context login
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setServerError(null);
     try {
-      // Login returns token directly — no OTP step
-      const data = await authApi.login({ email, password });
-      tokenStorage.save(data.accessToken, data.email, data.role);
-      if (data.role === 'JOB_SEEKER') navigate('/seeker/dashboard');
-      else if (data.role === 'EMPLOYER') navigate('/employer/dashboard');
-      else if (data.role === 'ADMIN') navigate('/admin/dashboard');
-      else navigate('/');
+      const response = await login(email, password); // ← calls authService + updates context
+      navigate(dashboardPathForRole(response.role)); // ← redirect by role
     } catch (err: any) {
       setServerError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
   };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

@@ -15,7 +15,7 @@ export function Footer() {
                 <Briefcase size={16} strokeWidth={2.5} />
               </div>
               <span className="text-xl font-bold text-slate-900 tracking-tight">
-                Skytouch<span className="text-slate-400 font-medium">Jobs</span>
+                SkyTouch<span className="text-slate-400 font-medium">Jobs</span>
               </span>
             </Link>
             <p className="text-slate-500 mb-8 max-w-sm leading-relaxed text-sm">
@@ -145,7 +145,7 @@ export function Footer() {
 
         <div className="border-t border-slate-200 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-slate-500">
           <p>
-            © {new Date().getFullYear()} Skytouch Jobs. All rights reserved.
+            © {new Date().getFullYear()} SkyTouch Jobs. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <a href="#" className="hover:text-slate-900 transition-colors">

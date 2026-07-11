@@ -32,7 +32,7 @@ export function Navbar() {
               <Briefcase size={16} strokeWidth={2.5} />
             </div>
             <span className="text-xl font-bold text-slate-900 tracking-tight">
-              Skytouch<span className="text-slate-400 font-medium">Jobs</span>
+              SkyTouch<span className="text-slate-400 font-medium">Jobs</span>
             </span>
           </Link>
 

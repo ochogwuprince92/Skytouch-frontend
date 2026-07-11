@@ -13,6 +13,7 @@ import {
 import { motion } from 'framer-motion';
 import { authApi } from '../../services/api';
 type SeekerForm = {
+
   email: string;
   password: string;
   confirmPassword: string;
@@ -113,8 +114,16 @@ export function RegisterPage() {
         middleName: values.middleName || undefined,
         lastName: values.lastName,
         phone: `${COUNTRY_CODE}${values.phone}`,
+        userType: role === 'seeker' ? 'JOB_SEEKER' : 'EMPLOYER',
       });
-      navigate(`/auth/verify?email=${encodeURIComponent(values.email.trim())}`);
+      // Store the email in a variable
+        const emailToVerify = values.email.trim();
+
+        // Debug to confirm the value
+        console.log('Navigating to verify with email:', emailToVerify);
+
+        // Navigate to verification page
+        navigate(`/verify-email?email=${encodeURIComponent(emailToVerify)}`);
     } catch (err: any) {
       setServerError(err.message || 'Registration failed. Please try again.');
     } finally {
