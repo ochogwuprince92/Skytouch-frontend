@@ -1,6 +1,6 @@
 import React from 'react';
-import { Briefcase } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { LogoMark } from './LogoMark';
 export function Footer() {
   return (
     <footer className="bg-white border-t border-slate-200 pt-20 pb-10">
@@ -11,9 +11,7 @@ export function Footer() {
               to="/"
               className="flex items-center gap-2.5 mb-6 group inline-flex">
               
-              <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white transition-transform group-hover:scale-105">
-                <Briefcase size={16} strokeWidth={2.5} />
-              </div>
+              <LogoMark className="w-8 h-8 rounded-lg" />
               <span className="text-xl font-bold text-slate-900 tracking-tight">
                 SkyTouch<span className="text-slate-400 font-medium">Jobs</span>
               </span>

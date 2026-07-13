@@ -34,6 +34,14 @@ export function EmployerOnboardingPage() {
         [addressLine.trim(), addressLga.trim(), addressState]
           .filter(Boolean)
           .join(', ') || undefined;
+
+      // createCompany() returning successfully (201, with the created
+      // company's id in the body) IS the success signal — no need to
+      // re-fetch the employer profile here just to confirm it. The
+      // EmployerOnboardingGuard already re-verifies on the next route
+      // (via its own fresh, path-scoped check) before granting access
+      // to anything under /employer/*.
+      console.log('[ONBOARDING] calling createCompany...');
       await createCompany({
         name: name.trim(),
         industry: industry.trim() || undefined,
@@ -41,8 +49,12 @@ export function EmployerOnboardingPage() {
         address,
         description: description.trim() || undefined,
       });
+      console.log('[ONBOARDING] createCompany resolved successfully, about to navigate');
+
       navigate('/employer/dashboard', { replace: true });
+      console.log('[ONBOARDING] navigate() call has been made');
     } catch (err) {
+      console.log('[ONBOARDING] caught error:', err);
       setError(
         err instanceof ApiError
           ? err.message

@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useLogout } from '../hooks/useLogout';
 import { NotificationBell } from '../components/NotificationBell';
+import { LogoMark } from '../components/LogoMark';
 export function SeekerLayout() {
   const { user } = useAuth();
   const handleLogout = useLogout();
@@ -99,9 +100,7 @@ export function SeekerLayout() {
             to="/"
             className="flex items-center gap-2.5 cursor-pointer group">
             
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
-              <Briefcase size={18} strokeWidth={2.5} />
-            </div>
+            <LogoMark className="w-8 h-8 rounded-lg" />
             <span className="text-xl font-bold text-white tracking-tight">
               SkyTouch<span className="text-slate-500 font-medium">Jobs</span>
             </span>

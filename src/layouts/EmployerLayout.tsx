@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import {
   Briefcase,
@@ -16,6 +16,7 @@ import {
 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationBell } from '../components/NotificationBell';
+import { LogoMark } from '../components/LogoMark';
 import { useAuth } from '../context/AuthContext';
 import { getMyEmployerProfile } from '../services/employerService';
 import { useLogout } from '../hooks/useLogout';
@@ -104,11 +105,9 @@ export function EmployerLayout() {
         
         <div className="p-6 flex items-center justify-between border-b border-slate-800">
           <Link to="/" className="flex items-center gap-2.5 cursor-pointer">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
-              <Briefcase size={18} strokeWidth={2.5} />
-            </div>
+            <LogoMark className="w-8 h-8 rounded-lg" />
             <span className="text-xl font-bold text-white tracking-tight">
-              Skytouch<span className="text-slate-500 font-medium">Jobs</span>
+              SkyTouch<span className="text-slate-500 font-medium">Jobs</span>
             </span>
           </Link>
           <button
@@ -141,11 +140,6 @@ export function EmployerLayout() {
                   {item.icon}
                   {item.name}
                 </div>
-                {item.badge &&
-                <span className="bg-danger text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    {item.badge}
-                  </span>
-                }
               </Link>);
 
           })}

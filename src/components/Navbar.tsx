@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Briefcase, Menu, X, ChevronDown } from 'lucide-react';
+import { Menu, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
+import { LogoMark } from './LogoMark';
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -28,9 +29,7 @@ export function Navbar() {
             to="/"
             className="flex items-center gap-2.5 cursor-pointer group">
             
-            <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white transition-transform group-hover:scale-105">
-              <Briefcase size={16} strokeWidth={2.5} />
-            </div>
+            <LogoMark className="w-8 h-8 rounded-lg" />
             <span className="text-xl font-bold text-slate-900 tracking-tight">
               SkyTouch<span className="text-slate-400 font-medium">Jobs</span>
             </span>

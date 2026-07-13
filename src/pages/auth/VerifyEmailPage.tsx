@@ -61,6 +61,8 @@ export function VerifyEmailPage() {
     try {
       // POST /api/auth/verify-email/resend
       await authApi.resendVerification(email);
+      setOtp(['', '', '', '', '', '']);
+      requestAnimationFrame(() => inputRefs.current[0]?.focus());
       setResendMessage('A new code has been sent to your email.');
     } catch (err: any) {
       setServerError(err.message || 'Failed to resend code.');

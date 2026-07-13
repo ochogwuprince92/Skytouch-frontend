@@ -3,14 +3,19 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { ApiError } from '../../lib/api';
 import { dashboardPathForRole } from '../../lib/roleRoutes';
+import { resendVerificationEmail } from '../../services/authService';
 
 export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [showResendVerification, setShowResendVerification] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth(); // ← use context login
 
@@ -18,13 +23,46 @@ export function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setServerError(null);
+    setResendMessage(null);
+    setShowResendVerification(false);
     try {
       const response = await login(email, password); // ← calls authService + updates context
       navigate(dashboardPathForRole(response.role)); // ← redirect by role
-    } catch (err: any) {
-      setServerError(err.message || 'Login failed. Please check your credentials.');
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Login failed. Please check your credentials.';
+      const verificationHint = /verify|verified|verification/i.test(message);
+      setServerError(message);
+      setShowResendVerification(verificationHint);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setServerError('Enter your email address to request a new verification code.');
+      return;
+    }
+
+    setIsResending(true);
+    setResendMessage(null);
+    setServerError(null);
+    try {
+      await resendVerificationEmail({ email: trimmedEmail });
+      setResendMessage('A new verification code has been sent to your email.');
+      setShowResendVerification(false);
+    } catch (err: unknown) {
+      setServerError(
+        err instanceof ApiError
+          ? err.message
+          : 'Unable to resend your verification code.',
+      );
+    } finally {
+      setIsResending(false);
     }
   };
   return (
@@ -91,8 +129,25 @@ export function LoginPage() {
         </div>
 
         {serverError && (
-          <p className="text-sm text-red-600 text-center bg-red-50 border border-red-200 p-3 rounded-xl">
-            {serverError}
+          <div className="space-y-3">
+            <p className="text-sm text-red-600 text-center bg-red-50 border border-red-200 p-3 rounded-xl">
+              {serverError}
+            </p>
+            {showResendVerification && (
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={isResending}
+                className="w-full text-sm font-semibold text-primary hover:text-primary-600 transition-colors disabled:opacity-60">
+                {isResending ? 'Sending new code…' : 'Resend verification code'}
+              </button>
+            )}
+          </div>
+        )}
+
+        {resendMessage && (
+          <p className="text-sm text-green-600 text-center bg-green-50 border border-green-200 p-3 rounded-xl">
+            {resendMessage}
           </p>
         )}
 

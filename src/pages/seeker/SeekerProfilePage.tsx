@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Upload } from 'lucide-react';
+import { ArrowLeft, Loader2, Upload } from 'lucide-react';
 import { FormAlert } from '../../components/FormAlert';
 import { LocationSelect } from '../../components/LocationSelect';
 import { ApiError } from '../../lib/api';
@@ -69,8 +69,17 @@ export function SeekerProfilePage() {
     setError(null);
     setSuccess(null);
     try {
+      const previousOpenToWork = profile?.openToWork ?? true;
+      const hasOnboardingChanges = Boolean(
+        cvFile ||
+          job.trim() ||
+          qualification.trim() ||
+          about.trim() ||
+          openToWork !== previousOpenToWork,
+      );
+
       let updated = profile;
-      if (cvFile || job || qualification || about) {
+      if (hasOnboardingChanges) {
         updated = await completeOnboarding({
           job: job.trim() || undefined,
           qualification: qualification.trim() || undefined,
@@ -79,6 +88,7 @@ export function SeekerProfilePage() {
           cv: cvFile ?? undefined,
         });
       }
+
       updated = await updateKyc({
         nin: nin.trim() || undefined,
         birthday: birthday || undefined,
@@ -90,6 +100,7 @@ export function SeekerProfilePage() {
           .filter(Boolean)
           .join(', ') || undefined,
       });
+
       setProfile(updated);
       setCvFile(null);
       setSuccess('Profile saved successfully.');
@@ -117,6 +128,15 @@ export function SeekerProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <Link
+          to="/seeker/dashboard"
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+          <ArrowLeft size={16} />
+          Back to dashboard
+        </Link>
+      </div>
+
       <div>
         <h1 className="text-2xl font-bold text-slate-900">My profile</h1>
         <p className="text-slate-600 mt-1">{displayName}</p>

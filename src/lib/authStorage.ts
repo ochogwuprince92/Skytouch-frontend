@@ -3,7 +3,7 @@ import type { AuthUser } from '../types/auth';
 const TOKEN_KEY = 'skytouch_access_token';
 const USER_KEY = 'skytouch_user';
 
-export function loadStoredAuth(): {
+export function loadStoredAuth(): { 
   token: string;
   user: AuthUser;
 } | null {
