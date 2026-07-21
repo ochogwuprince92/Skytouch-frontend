@@ -128,13 +128,6 @@ export function SeekerDashboardPage() {
             </li>
           ))}
         </ul>
-        {dashboard.profileCompleteness.percentComplete < 100 && (
-          <Link
-            to="/seeker/onboarding"
-            className="inline-block mt-4 text-sm font-semibold text-primary hover:underline">
-            Complete profile →
-          </Link>
-        )}
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -154,14 +147,14 @@ export function SeekerDashboardPage() {
 
       <div className="flex flex-wrap gap-3">
         <Link
-          to="/jobs"
-          className="px-5 py-2.5 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary-600">
-          Browse jobs
+          to="/seeker/profile"
+          className="px-5 py-2.5 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary-600 flex items-center gap-2">
+          <User size={16} /> {dashboard.profileCompleteness.percentComplete < 100 ? 'Complete profile' : 'Edit profile'}
         </Link>
         <Link
-          to="/seeker/profile"
-          className="px-5 py-2.5 border border-slate-200 rounded-xl font-semibold text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-          <User size={16} /> Edit profile
+          to="/seeker/jobs"
+          className="px-5 py-2.5 border border-slate-200 rounded-xl font-semibold text-sm text-slate-700 hover:bg-slate-50">
+          Browse jobs
         </Link>
       </div>
     </div>

@@ -55,13 +55,36 @@ export function Navbar() {
               
               Pricing
             </Link>
-            <div className="relative group cursor-pointer">
-              <div className="flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+            <div className="relative group">
+              <div className="flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer">
                 Platform
                 <ChevronDown
                   size={14}
                   className="group-hover:rotate-180 transition-transform duration-200 opacity-50" />
-                
+              </div>
+              <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="py-2">
+                  <Link
+                    to="/about"
+                    className="block px-4 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+                    About Us
+                  </Link>
+                  <Link
+                    to="/blog"
+                    className="block px-4 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+                    Blog
+                  </Link>
+                  <Link
+                    to="/resources"
+                    className="block px-4 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+                    Resources
+                  </Link>
+                  <Link
+                    to="/help"
+                    className="block px-4 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+                    Help Center
+                  </Link>
+                </div>
               </div>
             </div>
           </nav>
@@ -126,9 +149,23 @@ export function Navbar() {
               <Link
               to="/pricing"
               className="text-lg font-semibold text-slate-900">
-              
                 Pricing
               </Link>
+              <div className="flex flex-col gap-4">
+                <span className="text-lg font-semibold text-slate-900">Platform</span>
+                <Link to="/about" className="text-base text-slate-600">
+                  About Us
+                </Link>
+                <Link to="/blog" className="text-base text-slate-600">
+                  Blog
+                </Link>
+                <Link to="/resources" className="text-base text-slate-600">
+                  Resources
+                </Link>
+                <Link to="/help" className="text-base text-slate-600">
+                  Help Center
+                </Link>
+              </div>
               <hr className="border-slate-100" />
               <Link
               to="/login"

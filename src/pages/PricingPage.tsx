@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { CheckCircle2, X } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { PaymentModal } from '../components/PaymentModal';
+import { useAuth } from '../context/AuthContext';
 export function PricingPage() {
+  const { user } = useAuth();
   const [isAnnual, setIsAnnual] = useState(true);
+  const [showPayment, setShowPayment] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<typeof plans[0] | null>(null);
   const plans = [
   {
     name: 'Starter',
@@ -146,6 +151,19 @@ export function PricingPage() {
               </div>
 
               <button
+              onClick={() => {
+                if (plan.name === 'Enterprise') {
+                  // Contact sales - could open a modal or navigate to contact page
+                  return;
+                }
+                if (!user) {
+                  // Redirect to login/register
+                  window.location.href = '/login';
+                  return;
+                }
+                setSelectedPlan(plan);
+                setShowPayment(true);
+              }}
               className={`w-full py-3.5 rounded-xl font-bold text-lg mb-8 transition-all ${plan.popular ? 'bg-primary hover:bg-primary-600 text-white shadow-soft' : 'bg-primary-50 text-primary hover:bg-primary-100'}`}>
               
                 {plan.buttonText}
@@ -195,6 +213,34 @@ export function PricingPage() {
           </button>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {selectedPlan && user && (
+        <PaymentModal
+          isOpen={showPayment}
+          onClose={() => {
+            setShowPayment(false);
+            setSelectedPlan(null);
+          }}
+          amount={isAnnual ? selectedPlan.priceAnnual * 12 : selectedPlan.priceMonthly}
+          currency="NGN"
+          email={user.email}
+          metadata={{
+            plan: selectedPlan.name,
+            billing: isAnnual ? 'annual' : 'monthly',
+            userId: user.id,
+          }}
+          onSuccess={(reference) => {
+            setShowPayment(false);
+            setSelectedPlan(null);
+            // Could show success message or redirect to subscription page
+            window.location.href = '/employer/dashboard';
+          }}
+          onError={(error) => {
+            console.error('Payment error:', error);
+          }}
+        />
+      )}
     </div>);
 
 }

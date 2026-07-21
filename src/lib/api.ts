@@ -35,17 +35,45 @@ export function getStoredToken(): string | null {
 async function parseError(response: Response): Promise<ApiError> {
   try {
     const body = (await response.json()) as ApiErrorBody;
+    // Sanitize backend error messages to avoid exposing technical details
+    let message = body.message ?? 'Something went wrong';
+    
+    // Replace technical database constraint errors with user-friendly messages
+    if (message.includes('violates check constraint') || message.includes('constraint violation')) {
+      message = 'Unable to complete this operation. Please try again later.';
+    }
+    
+    // Remove UUIDs from error messages to avoid exposing technical identifiers
+    message = message.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '[ID]');
+    
+    // Replace specific technical error patterns with user-friendly messages
+    if (message.includes('Interview not found for application: [ID]')) {
+      message = 'Interview not found for this application';
+    }
+    if (message.includes('Application not found: [ID]')) {
+      message = 'Application not found';
+    }
+    if (message.includes('Job not found: [ID]')) {
+      message = 'Job not found';
+    }
+    if (message.includes('Offer not found: [ID]')) {
+      message = 'Offer not found';
+    }
+    if (message.includes('Resource not found: [ID]')) {
+      message = 'Resource not found';
+    }
+    
     return new ApiError({
       status: body.status ?? response.status,
       error: body.error ?? response.statusText,
-      message: body.message ?? 'Something went wrong',
+      message,
       timestamp: body.timestamp,
     });
   } catch {
     return new ApiError({
       status: response.status,
       error: response.statusText,
-      message: response.statusText || 'Something went wrong',
+      message: 'Something went wrong. Please try again later.',
     });
   }
 }

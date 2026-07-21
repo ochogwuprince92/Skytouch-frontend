@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Building2, ExternalLink, Loader2 } from 'lucide-react';
+import { ArrowLeft, Building2, Download, ExternalLink, Loader2 } from 'lucide-react';
 import { ApplicationStatusBadge, EMPLOYER_STATUS_OPTIONS } from '../../components/ApplicationStatusBadge';
 import { FormAlert } from '../../components/FormAlert';
 import { ApplicationMessagesTab } from '../../components/applications/ApplicationMessagesTab';
 import { ApplicationInterviewsTab } from '../../components/applications/ApplicationInterviewsTab';
 import { ApplicationOffersTab } from '../../components/applications/ApplicationOffersTab';
-import { ApiError } from '../../lib/api';
+import { ApiError, API_BASE_URL } from '../../lib/api';
 import { companyInitials, formatDate, formatRelativeTime } from '../../lib/format';
 import { listJobApplicants, updateApplicationStatus } from '../../services/jobService';
 import {
@@ -18,12 +18,13 @@ import type { ApplicationResponse, ApplicationStatus } from '../../types/applica
 type TabId = 'overview' | 'messages' | 'interviews' | 'offers';
 
 interface ApplicationDetailPageProps {
-  role: 'JOB_SEEKER' | 'EMPLOYER';
+  role: 'JOB_SEEKER' | 'EMPLOYER' | 'ADMIN';
 }
 
 export function ApplicationDetailPage({ role }: ApplicationDetailPageProps) {
   const { id, jobId } = useParams();
   const isEmployer = role === 'EMPLOYER';
+  const isAdmin = role === 'ADMIN';
 
   const [application, setApplication] = useState<ApplicationResponse | null>(
     null,
@@ -33,8 +34,11 @@ export function ApplicationDetailPage({ role }: ApplicationDetailPageProps) {
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [isUpdating, setIsUpdating] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [statusComment, setStatusComment] = useState('');
+  const [showCommentField, setShowCommentField] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<ApplicationStatus | null>(null);
 
-  const backPath = isEmployer ? '/employer/ats' : '/seeker/applications';
+  const backPath = isEmployer ? '/employer/ats' : isAdmin ? '/admin/jobs' : '/seeker/applications';
 
   useEffect(() => {
     if (!id) return;
@@ -44,7 +48,7 @@ export function ApplicationDetailPage({ role }: ApplicationDetailPageProps) {
       setIsLoading(true);
       setError(null);
       try {
-        if (isEmployer) {
+        if (isEmployer || isAdmin) {
           if (!jobId) throw new Error('Job ID is required.');
           const page = await listJobApplicants(jobId, 0, 100);
           const found = page.content.find((a) => a.id === id);
@@ -77,6 +81,14 @@ export function ApplicationDetailPage({ role }: ApplicationDetailPageProps) {
 
   const handleStatusChange = async (status: ApplicationStatus) => {
     if (!application || !jobId) return;
+    
+    // Show comment field for REJECTED status (required by backend)
+    if (status === 'REJECTED') {
+      setPendingStatus(status);
+      setShowCommentField(true);
+      return;
+    }
+    
     setIsUpdating(true);
     setError(null);
     try {
@@ -84,6 +96,31 @@ export function ApplicationDetailPage({ role }: ApplicationDetailPageProps) {
         status,
       });
       setApplication(updated);
+      setShowCommentField(false);
+      setStatusComment('');
+      setPendingStatus(null);
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : 'Unable to update status.',
+      );
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleStatusSubmit = async () => {
+    if (!application || !jobId || !pendingStatus) return;
+    setIsUpdating(true);
+    setError(null);
+    try {
+      const updated = await updateApplicationStatus(jobId, application.id, {
+        status: pendingStatus,
+        comment: statusComment.trim() || undefined,
+      });
+      setApplication(updated);
+      setShowCommentField(false);
+      setStatusComment('');
+      setPendingStatus(null);
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : 'Unable to update status.',
@@ -138,7 +175,7 @@ export function ApplicationDetailPage({ role }: ApplicationDetailPageProps) {
   ];
 
   const canWithdraw =
-    !isEmployer &&
+    !isEmployer && !isAdmin &&
     !['WITHDRAWN', 'HIRED', 'REJECTED'].includes(application.status);
 
   return (
@@ -168,7 +205,7 @@ export function ApplicationDetailPage({ role }: ApplicationDetailPageProps) {
               </p>
               {!isEmployer && (
                 <Link
-                  to={`/jobs/${application.jobId}`}
+                  to={isAdmin ? `/admin/jobs/${application.jobId}` : `/jobs/${application.jobId}`}
                   className="text-sm text-primary hover:underline inline-flex items-center gap-1 mt-2">
                   View job posting <ExternalLink size={14} />
                 </Link>
@@ -183,13 +220,13 @@ export function ApplicationDetailPage({ role }: ApplicationDetailPageProps) {
           </div>
         </div>
 
-        {isEmployer && jobId && (
+        {(isEmployer || isAdmin) && jobId && (
           <div className="mt-4 pt-4 border-t border-slate-100">
             <label className="block text-xs font-semibold text-slate-500 mb-1.5">
               Update pipeline status
             </label>
             <select
-              value={application.status}
+              value={showCommentField ? pendingStatus : application.status}
               disabled={isUpdating}
               onChange={(e) =>
                 void handleStatusChange(e.target.value as ApplicationStatus)
@@ -201,6 +238,37 @@ export function ApplicationDetailPage({ role }: ApplicationDetailPageProps) {
                 </option>
               ))}
             </select>
+            {showCommentField && (
+              <div className="mt-3 space-y-2">
+                <textarea
+                  value={statusComment}
+                  onChange={(e) => setStatusComment(e.target.value)}
+                  placeholder="Reason for rejection (required)"
+                  rows={2}
+                  required
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleStatusSubmit}
+                    disabled={isUpdating || !statusComment.trim()}
+                    className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold disabled:opacity-60">
+                    {isUpdating ? 'Updating…' : 'Confirm'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCommentField(false);
+                      setStatusComment('');
+                      setPendingStatus(null);
+                    }}
+                    className="px-4 py-2 text-slate-600 text-sm">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
             <p className="text-xs text-slate-500 mt-2">
               Candidate: {application.seekerName} ({application.seekerEmail})
             </p>
@@ -247,13 +315,23 @@ export function ApplicationDetailPage({ role }: ApplicationDetailPageProps) {
               {application.cvUrl && (
                 <div>
                   <p className="text-slate-500 font-medium mb-1">CV</p>
-                  <a
-                    href={application.cvUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline">
-                    View CV
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={application.cvUrl.startsWith('http') ? application.cvUrl : `${API_BASE_URL}${application.cvUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline inline-flex items-center gap-1">
+                      <ExternalLink size={14} />
+                      View CV
+                    </a>
+                    <a
+                      href={application.cvUrl.startsWith('http') ? application.cvUrl : `${API_BASE_URL}${application.cvUrl}`}
+                      download
+                      className="text-primary hover:underline inline-flex items-center gap-1">
+                      <Download size={14} />
+                      Download
+                    </a>
+                  </div>
                 </div>
               )}
               <div className="grid sm:grid-cols-2 gap-4 pt-2">

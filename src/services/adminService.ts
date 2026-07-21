@@ -2,7 +2,7 @@ import { apiRequest } from '../lib/api';
 import { downloadCsvFromApi } from '../lib/download';
 import { buildPageQuery } from '../types/api';
 import type { PaginatedResponse } from '../types/api';
-import type { AdminDashboard, AdminExportType, AdminOpsResult, AuditEvent, PlatformAnalytics } from '../types/admin';
+import type { AdminDashboard, AdminExportType, AdminOpsResult, AuditEvent, PlatformAnalytics, CompanyModerationResponse, UserModerationResponse, JobModerationResponse } from '../types/admin';
 import type { CompanyResponse } from '../types/company';
 
 export function getAdminDashboard(): Promise<AdminDashboard> {
@@ -37,6 +37,64 @@ export function suspendUser(id: string): Promise<void> {
   });
 }
 
+export function activateUser(id: string): Promise<void> {
+  return apiRequest<void>(`/api/admin/users/${id}/activate`, {
+    method: 'PATCH',
+  });
+}
+
+export function suspendCompany(id: string): Promise<void> {
+  return apiRequest<void>(`/api/admin/companies/${id}/suspend`, {
+    method: 'PATCH',
+  });
+}
+
+export function activateCompany(id: string): Promise<void> {
+  return apiRequest<void>(`/api/admin/companies/${id}/activate`, {
+    method: 'PATCH',
+  });
+}
+
+export function listUsers(
+  page: number,
+  size: number,
+  email?: string,
+  status?: string,
+  emailVerified?: boolean,
+): Promise<PaginatedResponse<UserModerationResponse>> {
+  const extra: Record<string, string | number | boolean | undefined> = {};
+  if (status) extra.status = status;
+  if (email) extra.email = email;
+  if (emailVerified !== undefined) extra.emailVerified = emailVerified;
+  
+  const query = buildPageQuery({ page, size, extra });
+  return apiRequest<PaginatedResponse<UserModerationResponse>>(
+    `/api/admin/users?${query}`,
+  );
+}
+
+export function listCompanies(
+  page: number,
+  size: number,
+  status?: string,
+): Promise<PaginatedResponse<CompanyModerationResponse>> {
+  const query = buildPageQuery({ page, size, extra: status ? { status } : {} });
+  return apiRequest<PaginatedResponse<CompanyModerationResponse>>(
+    `/api/admin/companies?${query}`,
+  );
+}
+
+export function listJobs(
+  page: number,
+  size: number,
+  status?: string,
+): Promise<PaginatedResponse<JobModerationResponse>> {
+  const query = buildPageQuery({ page, size, extra: status ? { status } : {} });
+  return apiRequest<PaginatedResponse<JobModerationResponse>>(
+    `/api/admin/jobs?${query}`,
+  );
+}
+
 export function forceCloseJob(id: string): Promise<void> {
   return apiRequest<void>(`/api/admin/jobs/${id}/close`, {
     method: 'PATCH',
@@ -57,8 +115,11 @@ export function listAuditEvents(
   );
 }
 
-export function exportCsv(type: AdminExportType): Promise<void> {
-  return downloadCsvFromApi(`/api/admin/export/${type}`);
+export function exportCsv(type: AdminExportType, emailFilter?: string): Promise<void> {
+  const url = emailFilter 
+    ? `/api/admin/export/${type}?email=${encodeURIComponent(emailFilter)}`
+    : `/api/admin/export/${type}`;
+  return downloadCsvFromApi(url);
 }
 
 export function runJobAlertDigest(): Promise<AdminOpsResult> {

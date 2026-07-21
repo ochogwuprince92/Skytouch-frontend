@@ -1,42 +1,40 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Loader2, User, X } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { Loader2, User } from 'lucide-react';
 import {
   ApplicationStatusBadge,
   EMPLOYER_STATUS_OPTIONS,
 } from '../../components/ApplicationStatusBadge';
-import { ExportCsvButton } from '../../components/ExportCsvButton';
 import { FormAlert } from '../../components/FormAlert';
 import { PaginatedList } from '../../components/PaginatedList';
 import { ApiError } from '../../lib/api';
 import { formatRelativeTime } from '../../lib/format';
-import { exportEmployerApplications } from '../../services/analyticsService';
-import { listJobApplicants, listMyJobs, updateApplicationStatus } from '../../services/jobService';
+import { listJobApplicants, searchJobs, updateApplicationStatus } from '../../services/jobService';
 import type { ApplicationResponse, ApplicationStatus } from '../../types/application';
 import type { JobSummary } from '../../types/job';
 
-export function EmployerATSPage() {
+export function AdminATSPage() {
+  const { id } = useParams();
   const [jobs, setJobs] = useState<JobSummary[]>([]);
   const [selectedJobId, setSelectedJobId] = useState('');
   const [isLoadingJobs, setIsLoadingJobs] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [statusComment, setStatusComment] = useState('');
-  const [showCommentField, setShowCommentField] = useState(false);
-  const [pendingStatusApp, setPendingStatusApp] = useState<ApplicationResponse | null>(null);
-  const [pendingStatus, setPendingStatus] = useState<ApplicationStatus | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     async function loadJobs() {
       setIsLoadingJobs(true);
       try {
-        const result = await listMyJobs(0, 50);
+        const result = await searchJobs(0, 50);
         if (!cancelled) {
           setJobs(result.content);
           if (result.content.length > 0) {
-            setSelectedJobId((prev) => prev || result.content[0].id);
+            setSelectedJobId((prev) => {
+              if (id) return id;
+              return prev || result.content[0].id;
+            });
           }
         }
       } catch (err) {
@@ -53,7 +51,7 @@ export function EmployerATSPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [id]);
 
   const fetchApplicants = useCallback(
     (page: number, size: number) => {
@@ -76,43 +74,11 @@ export function EmployerATSPage() {
     status: ApplicationStatus,
   ) => {
     if (!selectedJobId) return;
-    
-    // Show comment field for REJECTED status (required by backend)
-    if (status === 'REJECTED') {
-      setPendingStatusApp(application);
-      setPendingStatus(status);
-      setShowCommentField(true);
-      return;
-    }
-    
     setUpdatingId(application.id);
     setError(null);
     try {
       await updateApplicationStatus(selectedJobId, application.id, { status });
       setRefreshKey((k) => k + 1);
-    } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : 'Unable to update status.',
-      );
-    } finally {
-      setUpdatingId(null);
-    }
-  };
-
-  const handleStatusSubmit = async () => {
-    if (!selectedJobId || !pendingStatusApp || !pendingStatus) return;
-    setUpdatingId(pendingStatusApp.id);
-    setError(null);
-    try {
-      await updateApplicationStatus(selectedJobId, pendingStatusApp.id, {
-        status: pendingStatus,
-        comment: statusComment.trim() || undefined,
-      });
-      setRefreshKey((k) => k + 1);
-      setShowCommentField(false);
-      setStatusComment('');
-      setPendingStatusApp(null);
-      setPendingStatus(null);
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : 'Unable to update status.',
@@ -137,100 +103,42 @@ export function EmployerATSPage() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 mb-1">
-            Applicant tracking
+            Job Applications
           </h1>
           <p className="text-slate-600">
-            Review candidates and move them through your hiring pipeline.
+            Review candidates and manage hiring pipeline across all jobs.
           </p>
         </div>
         {jobs.length > 0 && (
           <div className="flex flex-wrap items-center gap-3">
-            <ExportCsvButton
-              label="Export all applications"
-              onExport={exportEmployerApplications}
-            />
             <select
-            value={selectedJobId}
-            onChange={(e) => {
-              setSelectedJobId(e.target.value);
-              setRefreshKey((k) => k + 1);
-            }}
-            className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 min-w-[220px]">
-            {jobs.map((job) => (
-              <option key={job.id} value={job.id}>
-                {job.title} ({job.status})
-              </option>
-            ))}
-          </select>
+              value={selectedJobId}
+              onChange={(e) => {
+                setSelectedJobId(e.target.value);
+                setRefreshKey((k) => k + 1);
+              }}
+              className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 min-w-[220px]">
+              {jobs.map((job) => (
+                <option key={job.id} value={job.id}>
+                  {job.title} ({job.status})
+                </option>
+              ))}
+            </select>
           </div>
         )}
       </div>
 
       {error && <FormAlert message={error} />}
 
-      {showCommentField && pendingStatusApp && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-900">Reject Application</h3>
-                <p className="text-sm text-slate-600 mt-1">
-                  Please provide a reason for rejecting {pendingStatusApp.seekerName}'s application.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCommentField(false);
-                  setStatusComment('');
-                  setPendingStatusApp(null);
-                  setPendingStatus(null);
-                }}
-                className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
-            </div>
-            <textarea
-              value={statusComment}
-              onChange={(e) => setStatusComment(e.target.value)}
-              placeholder="Reason for rejection (required)"
-              rows={3}
-              required
-              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none mb-4"
-            />
-            <div className="flex gap-2 justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCommentField(false);
-                  setStatusComment('');
-                  setPendingStatusApp(null);
-                  setPendingStatus(null);
-                }}
-                className="px-4 py-2 text-slate-600 text-sm font-medium">
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleStatusSubmit}
-                disabled={updatingId === pendingStatusApp.id || !statusComment.trim()}
-                className="px-4 py-2 bg-danger text-white rounded-lg text-sm font-semibold disabled:opacity-60">
-                {updatingId === pendingStatusApp.id ? 'Rejecting…' : 'Reject Application'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {jobs.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
           <p className="text-slate-600 mb-4">
-            Post a job first to start receiving applications.
+            No jobs found on the platform.
           </p>
           <Link
-            to="/employer/jobs"
+            to="/admin/jobs"
             className="text-primary font-semibold hover:underline">
-            Go to My Jobs →
+            Go to Jobs Moderation →
           </Link>
         </div>
       ) : (
@@ -253,7 +161,7 @@ export function EmployerATSPage() {
                   </div>
                   <div className="min-w-0">
                     <Link
-                      to={`/employer/jobs/${selectedJobId}/applications/${app.id}`}
+                      to={`/admin/jobs/${selectedJobId}/applications/${app.id}`}
                       className="font-bold text-slate-900 hover:text-primary truncate block">
                       {app.seekerName}
                     </Link>
@@ -268,7 +176,7 @@ export function EmployerATSPage() {
                 <div className="flex flex-wrap items-center gap-3">
                   <ApplicationStatusBadge status={app.status} />
                   <select
-                    value={showCommentField && pendingStatusApp?.id === app.id ? pendingStatus : app.status}
+                    value={app.status}
                     disabled={updatingId === app.id}
                     onChange={(e) =>
                       void handleStatusChange(
@@ -284,7 +192,7 @@ export function EmployerATSPage() {
                     ))}
                   </select>
                   <Link
-                    to={`/employer/jobs/${selectedJobId}/applications/${app.id}`}
+                    to={`/admin/jobs/${selectedJobId}/applications/${app.id}`}
                     className="text-sm font-semibold text-primary hover:underline">
                     Open →
                   </Link>

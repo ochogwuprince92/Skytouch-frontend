@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Building2, Loader2 } from 'lucide-react';
 import { FormAlert } from '../../components/FormAlert';
 import { LocationSelect } from '../../components/LocationSelect';
+import { EnumSelect, INDUSTRY_OPTIONS } from '../../components/EnumSelect';
 import { companyInitials } from '../../lib/format';
 import { ApiError } from '../../lib/api';
 import { getMyCompany, updateMyCompany } from '../../services/companyService';
@@ -152,10 +153,12 @@ export function EmployerCompanyPage() {
           <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             Industry
           </label>
-          <input
+          <EnumSelect
             value={industry}
-            onChange={(e) => setIndustry(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+            onChange={setIndustry}
+            options={INDUSTRY_OPTIONS}
+            placeholder="Select industry"
+            className="w-full"
           />
         </div>
         <div>

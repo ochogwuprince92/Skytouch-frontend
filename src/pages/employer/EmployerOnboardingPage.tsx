@@ -4,6 +4,7 @@ import { Building2, Globe, ArrowRight, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { FormAlert } from '../../components/FormAlert';
 import { LocationSelect } from '../../components/LocationSelect';
+import { EnumSelect, INDUSTRY_OPTIONS } from '../../components/EnumSelect';
 import { ApiError } from '../../lib/api';
 import { createCompany } from '../../services/companyService';
 
@@ -51,8 +52,8 @@ export function EmployerOnboardingPage() {
       });
       console.log('[ONBOARDING] createCompany resolved successfully, about to navigate');
 
-      navigate('/employer/dashboard', { replace: true });
-      console.log('[ONBOARDING] navigate() call has been made');
+      // Force full page refresh to ensure fresh data fetch from backend
+      window.location.href = '/employer/dashboard';
     } catch (err) {
       console.log('[ONBOARDING] caught error:', err);
       setError(
@@ -118,12 +119,12 @@ export function EmployerOnboardingPage() {
               Industry{' '}
               <span className="text-slate-400 font-normal">(optional)</span>
             </label>
-            <input
-              type="text"
+            <EnumSelect
               value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-              placeholder="e.g. Fintech"
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              onChange={setIndustry}
+              options={INDUSTRY_OPTIONS}
+              placeholder="Select industry"
+              className="w-full"
             />
           </div>
 

@@ -42,12 +42,7 @@ export function ApplicationStatusBadge({
 }
 
 export const EMPLOYER_STATUS_OPTIONS: ApplicationStatus[] = [
-  'SUBMITTED',
   'REVIEWING',
   'SHORTLISTED',
-  'INTERVIEW_SCHEDULED',
-  'OFFER_EXTENDED',
-  'OFFER_DECLINED',
-  'HIRED',
   'REJECTED',
 ];

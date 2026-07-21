@@ -17,8 +17,8 @@ export function ForgotPasswordPage() {
     try {
       // POST /api/auth/forgot-password — sends OTP to email
       await authApi.forgotPassword({ email });
-      // Redirect to reset page with email in URL
-      navigate(`/auth/reset-password?email=${encodeURIComponent(email)}`);
+      // Redirect to OTP verification page with email in URL
+      navigate(`/verify-otp?email=${encodeURIComponent(email)}`);
     } catch (err: any) {
       setServerError(err.message || 'Failed to send reset code. Please try again.');
     } finally {

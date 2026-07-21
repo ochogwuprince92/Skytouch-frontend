@@ -56,3 +56,34 @@ export interface AdminOpsResult {
   jobsIncluded?: number;
   offersExpired?: number;
 }
+
+export interface UserModerationResponse {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  emailVerified: boolean;
+  createdAt: string;
+}
+
+export interface CompanyModerationResponse {
+  id: string;
+  name: string;
+  industry: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface JobModerationResponse {
+  id: string;
+  companyName: string;
+  title: string;
+  employmentType: string;
+  workMode: string;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  locationState: string;
+  status: string;
+  createdAt: string;
+}

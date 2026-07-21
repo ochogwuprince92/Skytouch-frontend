@@ -106,6 +106,16 @@ export function EmployerDashboardPage() {
         </p>
       </div>
 
+      {!company && (
+        <div className="rounded-xl bg-primary-50 border border-primary-100 px-4 py-3 text-sm text-primary-900 flex items-center justify-between">
+          <span>No company linked. Create a company to start posting jobs.</span>
+          <Link
+            to="/employer/onboarding"
+            className="px-3 py-1.5 bg-primary text-white rounded-lg font-semibold text-sm hover:bg-primary-600">
+            Create company
+          </Link>
+        </div>
+      )}
       {company?.status === 'PENDING' && (
         <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">
           Your company is awaiting admin approval. You cannot publish jobs until

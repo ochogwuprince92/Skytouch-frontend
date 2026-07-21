@@ -4,6 +4,7 @@ import { Loader2, Plus } from 'lucide-react';
 import { FormAlert } from '../../components/FormAlert';
 import { PaginatedList } from '../../components/PaginatedList';
 import { LocationSelect } from '../../components/LocationSelect';
+import { EnumSelect, JOB_ROLE_OPTIONS } from '../../components/EnumSelect';
 import { ExportCsvButton } from '../../components/ExportCsvButton';
 import { ApiError } from '../../lib/api';
 import {
@@ -105,7 +106,7 @@ export function EmployerJobsPage() {
       await publishJob(job.id);
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to publish job.');
+      setError('Unable to publish job. Please try again later.');
     } finally {
       setActionId(null);
     }
@@ -118,7 +119,7 @@ export function EmployerJobsPage() {
       await closeJob(job.id);
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Unable to close job.');
+      setError('Unable to close job. Please try again later.');
     } finally {
       setActionId(null);
     }
@@ -156,12 +157,12 @@ export function EmployerJobsPage() {
         <form
           onSubmit={handleCreate}
           className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
-          <input
-            required
+          <EnumSelect
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={setTitle}
+            options={JOB_ROLE_OPTIONS}
             placeholder="Job title"
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+            className="w-full"
           />
           <textarea
             required

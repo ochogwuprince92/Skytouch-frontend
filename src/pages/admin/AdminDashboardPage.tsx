@@ -21,6 +21,7 @@ export function AdminDashboardPage() {
   const [analytics, setAnalytics] = useState<PlatformAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [emailFilter, setEmailFilter] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -115,17 +116,17 @@ export function AdminDashboardPage() {
     {
       label: 'Pending companies',
       count: dashboard.pendingCompanies,
-      href: '/admin/employers',
+      href: '/admin/employers?filter=pending',
     },
     {
       label: 'Pending email verifications',
       count: dashboard.pendingEmailVerifications,
-      href: '/admin/users',
+      href: '/admin/users?filter=unverified',
     },
     {
       label: 'Pending accounts',
       count: dashboard.pendingAccounts,
-      href: '/admin/users',
+      href: '/admin/users?filter=pending',
     },
   ];
 
@@ -138,10 +139,19 @@ export function AdminDashboardPage() {
             Platform overview and items needing attention.
           </p>
         </div>
-        <ExportCsvButton
-          label="Export applications"
-          onExport={() => exportCsv('applications')}
-        />
+        <div className="flex items-center gap-3">
+          <input
+            type="email"
+            value={emailFilter}
+            onChange={(e) => setEmailFilter(e.target.value)}
+            placeholder="Filter by email (optional)"
+            className="px-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          />
+          <ExportCsvButton
+            label="Export applications"
+            onExport={() => exportCsv('applications', emailFilter || undefined)}
+          />
+        </div>
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

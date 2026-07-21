@@ -53,8 +53,8 @@ export function LoginPage() {
     setServerError(null);
     try {
       await resendVerificationEmail({ email: trimmedEmail });
-      setResendMessage('A new verification code has been sent to your email.');
-      setShowResendVerification(false);
+      // Redirect to OTP verification page after successful resend
+      navigate(`/verify-email?email=${encodeURIComponent(trimmedEmail)}`);
     } catch (err: unknown) {
       setServerError(
         err instanceof ApiError

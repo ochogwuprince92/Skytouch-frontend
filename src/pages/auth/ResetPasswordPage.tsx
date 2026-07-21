@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Lock, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { authApi, tokenStorage } from '../../services/api';
@@ -7,11 +7,7 @@ import { authApi, tokenStorage } from '../../services/api';
 export function ResetPasswordPage() {
   const [searchParams] = useSearchParams();
   const email = searchParams.get('email') || '';
-  const navigate = useNavigate();
-
-  // OTP inputs
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const otp = searchParams.get('otp') || '';
 
   // Password fields
   const [newPassword, setNewPassword] = useState('');
@@ -24,30 +20,13 @@ export function ResetPasswordPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) value = value.slice(-1);
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
     setServerError(null);
 
-    const code = otp.join('');
-    if (code.length < 6) {
-      setValidationError('Please enter all 6 digits of the reset code.');
+    if (!otp) {
+      setValidationError('Missing verification code. Please start the forgot password process again.');
       return;
     }
     if (newPassword.length < 8) {
@@ -62,7 +41,7 @@ export function ResetPasswordPage() {
     setIsLoading(true);
     try {
       // POST /api/auth/reset-password — verifies OTP + sets new password + returns token
-      const data = await authApi.resetPassword({ email, otp: code, newPassword });
+      const data = await authApi.resetPassword({ email, otp, newPassword });
       tokenStorage.save(data.accessToken, data.email, data.role);
       setIsSuccess(true);
     } catch (err: any) {
@@ -110,33 +89,11 @@ export function ResetPasswordPage() {
           Set new password
         </h1>
         <p className="text-slate-600">
-          Enter the 6-digit code sent to <span className="font-medium text-slate-900">{email}</span> and your new password.
+          Enter your new password for <span className="font-medium text-slate-900">{email}</span>
         </p>
       </div>
 
       <form className="space-y-5" onSubmit={handleSubmit}>
-
-        {/* OTP inputs */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-2">
-            Reset Code
-          </label>
-          <div className="flex justify-center gap-2 sm:gap-3">
-            {otp.map((digit, index) =>
-              <input
-                key={index}
-                ref={(el) => { inputRefs.current[index] = el; }}
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleOtpChange(index, e.target.value)}
-                onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                className="w-12 h-14 text-center text-2xl font-bold border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all bg-white" />
-            )}
-          </div>
-        </div>
 
         {/* New password */}
         <div>
