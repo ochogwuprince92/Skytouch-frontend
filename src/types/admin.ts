@@ -73,6 +73,10 @@ export interface CompanyModerationResponse {
   status: string;
   createdAt: string;
   updatedAt: string | null;
+  employerEmail?: string;
+  employerRole?: string;
+  employerStatus?: string;
+  employerEmailVerified?: boolean;
 }
 
 export interface JobModerationResponse {

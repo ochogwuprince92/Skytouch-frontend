@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CheckCircle, XCircle, AlertCircle, Building2, Loader2, ShieldOff, UserCheck } from 'lucide-react';
+import { CheckCircle, XCircle, AlertCircle, Building2, Loader2, ShieldOff, UserCheck, ChevronRight, X } from 'lucide-react';
 import { PaginatedList } from '../../components/PaginatedList';
 import { ExportCsvButton } from '../../components/ExportCsvButton';
 import {
@@ -22,6 +22,7 @@ export function AdminEmployersPage() {
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<CompanyModerationResponse | null>(null);
 
   const handleFilterChange = useCallback((filter: string) => {
     if (filter === 'all') {
@@ -213,7 +214,10 @@ export function AdminEmployersPage() {
           emptyMessage={!statusFilter ? 'No companies found.' : statusFilter === 'PENDING' ? 'No companies awaiting approval.' : `No ${statusFilter.toLowerCase()} companies found.`}
           listClassName="divide-y divide-slate-200"
           renderItem={(company) => (
-            <div className="px-6 py-4 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div 
+              onClick={() => setSelectedCompany(company)}
+              className="px-6 py-4 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
+            >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center font-bold text-slate-600">
                   {company.name ? companyInitials(company.name) : (
@@ -232,8 +236,9 @@ export function AdminEmployersPage() {
                 <span className="text-slate-500">
                   {formatDate(company.createdAt)}
                 </span>
+                <ChevronRight size={16} className="text-slate-400" />
                 {company.status === 'PENDING' && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
                       onClick={() => void handleApprove(company)}
@@ -263,7 +268,7 @@ export function AdminEmployersPage() {
                 {company.status === 'ACTIVE' && (
                   <button
                     type="button"
-                    onClick={() => void handleSuspend(company)}
+                    onClick={(e) => { e.stopPropagation(); void handleSuspend(company); }}
                     disabled={actionInProgress === company.id}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-danger/10 text-danger hover:bg-danger/20 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     {actionInProgress === company.id ? (
@@ -277,7 +282,7 @@ export function AdminEmployersPage() {
                 {company.status === 'SUSPENDED' && (
                   <button
                     type="button"
-                    onClick={() => void handleActivate(company)}
+                    onClick={(e) => { e.stopPropagation(); void handleActivate(company); }}
                     disabled={actionInProgress === company.id}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-success/10 text-success hover:bg-success/20 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     {actionInProgress === company.id ? (
@@ -294,6 +299,72 @@ export function AdminEmployersPage() {
           getItemKey={(company) => company.id}
         />
       </div>
+
+      {/* Company Detail Modal */}
+      {selectedCompany && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedCompany(null)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-900">Company Details</h3>
+              <button
+                type="button"
+                onClick={() => setSelectedCompany(null)}
+                className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-slate-500">Company Name</p>
+                <p className="text-slate-900 font-semibold">{selectedCompany.name}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">Industry</p>
+                <p className="text-slate-900 font-semibold">{selectedCompany.industry ?? 'Not set'}</p>
+              </div>
+              {selectedCompany.employerEmail && (
+                <>
+                  <div className="pt-4 border-t border-slate-200 mt-4">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Employer Information</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">Email</p>
+                    <p className="text-slate-900 font-semibold">{selectedCompany.employerEmail}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">Role</p>
+                    <p className="text-slate-900 font-semibold">{selectedCompany.employerRole ?? 'Not set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">Status</p>
+                    <div className="mt-1">
+                      <StatusBadge status={selectedCompany.employerStatus ?? selectedCompany.status} />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">Email Verified</p>
+                    <p className="text-slate-900 font-semibold">
+                      {selectedCompany.employerEmailVerified ? 'Yes' : 'No'}
+                    </p>
+                  </div>
+                </>
+              )}
+              <div>
+                <p className="text-sm font-medium text-slate-500">Status</p>
+                <div className="mt-1">
+                  <StatusBadge status={selectedCompany.status} />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">Created At</p>
+                <p className="text-slate-900 font-semibold">
+                  {formatDate(selectedCompany.createdAt)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

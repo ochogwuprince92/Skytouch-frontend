@@ -54,8 +54,11 @@ import { AboutPage } from './pages/AboutPage';
 import { BlogPage } from './pages/BlogPage';
 import { ResourcesPage } from './pages/ResourcesPage';
 import { HelpPage } from './pages/HelpPage';
-import { PaymentCallbackPage } from './pages/PaymentCallbackPage';
+import { PaymentCallbackPage } from './pages/subscription/PaymentCallbackPage';
 import { PaystackTestPage } from './pages/PaystackTestPage';
+import { SubscriptionPlansPage } from './pages/subscription/SubscriptionPlansPage';
+import { CurrentSubscriptionPage } from './pages/subscription/CurrentSubscriptionPage';
+import { SubscriptionUsagePage } from './pages/subscription/SubscriptionUsagePage';
 
 export function App() {
   useEffect(() => {
@@ -113,6 +116,13 @@ export function App() {
             path="/auth/reset-password"
             element={<Navigate to="/reset-password" replace />}
           />
+
+          {/* Subscription route redirects */}
+          <Route path="/subscription" element={<Navigate to="/employer/subscription/current" replace />} />
+          <Route path="/subscription/plans" element={<Navigate to="/employer/subscription/plans" replace />} />
+          <Route path="/subscription/current" element={<Navigate to="/employer/subscription/current" replace />} />
+          <Route path="/subscription/usage" element={<Navigate to="/employer/subscription/usage" replace />} />
+          <Route path="/subscription/payment/callback" element={<Navigate to="/employer/subscription/payment/callback" replace />} />
 
           <Route
             path="/settings"
@@ -172,6 +182,10 @@ export function App() {
               <Route path="messages" element={<EmployerMessagesPage />} />
               <Route path="analytics" element={<EmployerAnalyticsPage />} />
               <Route path="settings" element={<EmployerSettingsPage />} />
+              <Route path="subscription/plans" element={<SubscriptionPlansPage />} />
+              <Route path="subscription/current" element={<CurrentSubscriptionPage />} />
+              <Route path="subscription/usage" element={<SubscriptionUsagePage />} />
+              <Route path="subscription/payment/callback" element={<PaymentCallbackPage />} />
             </Route>
           </Route>
 
@@ -189,7 +203,7 @@ export function App() {
             <Route path="companies" element={<AdminCompaniesPage />} />
             <Route path="jobs" element={<AdminJobsModerationPage />} />
             <Route path="jobs/:id/applications" element={<AdminATSPage />} />
-            <Route path="jobs/:id/applications/:applicationId" element={<ApplicationDetailPage role="ADMIN" />} />
+            <Route path="jobs/:jobId/applications/:id" element={<ApplicationDetailPage role="ADMIN" />} />
             <Route path="jobs/:id" element={<JobDetailsPage />} />
             <Route path="ats" element={<AdminATSPage />} />
             <Route path="subscriptions" element={<AdminSubscriptionsPage />} />

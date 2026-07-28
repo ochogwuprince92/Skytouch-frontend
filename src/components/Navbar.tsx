@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Menu, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LogoMark } from './LogoMark';
+import { useAuth } from '../context/AuthContext';
+
 export function Navbar() {
+  const { user } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -18,6 +22,19 @@ export function Navbar() {
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  const handlePricingClick = () => {
+    if (user && user.role === 'EMPLOYER') {
+      navigate('/employer/subscription/plans');
+    } else if (user) {
+      // Redirect other authenticated users to their dashboard
+      if (user.role === 'JOB_SEEKER') navigate('/seeker/dashboard');
+      if (user.role === 'ADMIN') navigate('/admin/dashboard');
+    } else {
+      // Unauthenticated users go to public pricing page
+      navigate('/pricing');
+    }
+  };
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b ${isScrolled ? 'bg-white/80 backdrop-blur-lg border-slate-200/50 py-3' : 'bg-white border-transparent py-5'}`}>
@@ -49,12 +66,12 @@ export function Navbar() {
               
               Companies
             </Link>
-            <Link
-              to="/pricing"
+            <button
+              onClick={handlePricingClick}
               className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
               
-              Pricing
-            </Link>
+              Subscription
+            </button>
             <div className="relative group">
               <div className="flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer">
                 Platform
@@ -146,11 +163,11 @@ export function Navbar() {
               
                 Companies
               </Link>
-              <Link
-              to="/pricing"
-              className="text-lg font-semibold text-slate-900">
-                Pricing
-              </Link>
+              <button
+              onClick={handlePricingClick}
+              className="text-lg font-semibold text-slate-900 text-left">
+                Subscription
+              </button>
               <div className="flex flex-col gap-4">
                 <span className="text-lg font-semibold text-slate-900">Platform</span>
                 <Link to="/about" className="text-base text-slate-600">

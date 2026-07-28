@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Loader2, Plus } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Loader2, Plus, AlertTriangle, CreditCard } from 'lucide-react';
 import { FormAlert } from '../../components/FormAlert';
 import { PaginatedList } from '../../components/PaginatedList';
 import { LocationSelect } from '../../components/LocationSelect';
@@ -21,10 +21,12 @@ import {
   publishJob,
 } from '../../services/jobService';
 import { exportJobApplications } from '../../services/analyticsService';
+import { subscriptionApi } from '../../services/api';
 import type { CompanyResponse } from '../../types/company';
 import type { EmploymentType, JobSummary, WorkMode } from '../../types/job';
 
 export function EmployerJobsPage() {
+  const navigate = useNavigate();
   const [company, setCompany] = useState<CompanyResponse | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -32,6 +34,8 @@ export function EmployerJobsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [subscriptionError, setSubscriptionError] = useState(false);
+  const [checkingSubscription, setCheckingSubscription] = useState(true);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -47,6 +51,20 @@ export function EmployerJobsPage() {
     void getMyCompany()
       .then(setCompany)
       .catch(() => setCompany(null));
+  }, []);
+
+  useEffect(() => {
+    // Check subscription status before loading jobs
+    setCheckingSubscription(true);
+    subscriptionApi.getCurrentSubscription()
+      .then(() => {
+        setSubscriptionError(false);
+        setCheckingSubscription(false);
+      })
+      .catch(() => {
+        setSubscriptionError(true);
+        setCheckingSubscription(false);
+      });
   }, []);
 
   const fetchPage = useCallback(
@@ -72,10 +90,27 @@ export function EmployerJobsPage() {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+
+    // Validate required fields
+    const trimmedTitle = title.trim();
+    const trimmedDescription = description.trim();
+    
+    if (!trimmedTitle) {
+      setError('Job title is required');
+      setIsSubmitting(false);
+      return;
+    }
+    
+    if (!trimmedDescription) {
+      setError('Job description is required');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       await createJob({
-        title: title.trim(),
-        description: description.trim(),
+        title: trimmedTitle,
+        description: trimmedDescription,
         requirements: requirements.trim() || undefined,
         employmentType,
         workMode,
@@ -126,6 +161,46 @@ export function EmployerJobsPage() {
   };
 
   const canPublish = company?.status === 'ACTIVE';
+
+  if (checkingSubscription) {
+    return (
+      <div className="max-w-5xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">My jobs</h1>
+            <p className="text-slate-600 mt-1">Create, publish, and manage postings.</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (subscriptionError) {
+    return (
+      <div className="max-w-5xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">My jobs</h1>
+            <p className="text-slate-600 mt-1">Create, publish, and manage postings.</p>
+          </div>
+        </div>
+        <div className="bg-slate-100 rounded-2xl p-8 text-center">
+          <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">No Active Subscription</h2>
+          <p className="text-slate-600 mb-6">You need an active subscription to manage your job postings.</p>
+          <button
+            onClick={() => navigate('/employer/subscription/plans')}
+            className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition mx-auto">
+            <CreditCard size={20} />
+            View Subscription Plans
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">

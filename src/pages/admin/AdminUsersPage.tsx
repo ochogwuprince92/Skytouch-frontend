@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { ShieldOff, Search, CheckCircle, XCircle, UserCheck } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { ShieldOff, Search, CheckCircle, XCircle, UserCheck, ChevronRight, X } from 'lucide-react';
 import { PaginatedList } from '../../components/PaginatedList';
 import { ExportCsvButton } from '../../components/ExportCsvButton';
 import { listUsers, suspendUser, activateUser, exportCsv } from '../../services/adminService';
@@ -9,6 +9,7 @@ import type { UserModerationResponse } from '../../types/admin';
 
 export function AdminUsersPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [refreshKey, setRefreshKey] = useState(0);
   const [emailFilter, setEmailFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -16,6 +17,7 @@ export function AdminUsersPage() {
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserModerationResponse | null>(null);
 
   useEffect(() => {
     const filter = searchParams.get('filter');
@@ -208,7 +210,10 @@ export function AdminUsersPage() {
           emptyMessage="No users found."
           listClassName="divide-y divide-slate-200"
           renderItem={(user) => (
-            <div className="px-6 py-4 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div 
+              onClick={() => setSelectedUser(user)}
+              className="px-6 py-4 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
+            >
               <div className="flex-1">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center font-bold text-slate-600">
@@ -232,10 +237,11 @@ export function AdminUsersPage() {
                 <span className="text-xs text-slate-400">
                   {new Date(user.createdAt).toLocaleDateString()}
                 </span>
+                <ChevronRight size={16} className="text-slate-400" />
                 {user.status === 'ACTIVE' && (
                   <button
                     type="button"
-                    onClick={() => void handleSuspend(user)}
+                    onClick={(e) => { e.stopPropagation(); void handleSuspend(user); }}
                     disabled={actionInProgress === user.email}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-danger/10 text-danger hover:bg-danger/20 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     {actionInProgress === user.email ? (
@@ -249,7 +255,7 @@ export function AdminUsersPage() {
                 {user.status === 'SUSPENDED' && (
                   <button
                     type="button"
-                    onClick={() => void handleActivate(user)}
+                    onClick={(e) => { e.stopPropagation(); void handleActivate(user); }}
                     disabled={actionInProgress === user.email}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-success/10 text-success hover:bg-success/20 rounded-lg text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     {actionInProgress === user.email ? (
@@ -266,6 +272,51 @@ export function AdminUsersPage() {
           getItemKey={(user) => user.id}
         />
       </div>
+
+      {/* User Detail Modal */}
+      {selectedUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedUser(null)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-900">User Details</h3>
+              <button
+                type="button"
+                onClick={() => setSelectedUser(null)}
+                className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-slate-500">Email</p>
+                <p className="text-slate-900 font-semibold">{selectedUser.email}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">Role</p>
+                <p className="text-slate-900 font-semibold">{selectedUser.role}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">Status</p>
+                <div className="mt-1">
+                  <StatusBadge status={selectedUser.status} />
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">Email Verified</p>
+                <p className="text-slate-900 font-semibold">
+                  {selectedUser.emailVerified ? 'Yes' : 'No'}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-500">Created At</p>
+                <p className="text-slate-900 font-semibold">
+                  {new Date(selectedUser.createdAt).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

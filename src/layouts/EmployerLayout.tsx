@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   Search,
-  Plus } from
+  Plus,
+  CreditCard } from
 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationBell } from '../components/NotificationBell';
@@ -66,6 +67,11 @@ export function EmployerLayout() {
     name: 'Analytics',
     path: '/employer/analytics',
     icon: <BarChart3 size={20} />
+  },
+  {
+    name: 'Subscription',
+    path: '/employer/subscription/current',
+    icon: <CreditCard size={20} />
   },
   {
     name: 'Settings',
