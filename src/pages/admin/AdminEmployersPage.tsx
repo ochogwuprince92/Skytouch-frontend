@@ -349,6 +349,33 @@ export function AdminEmployersPage() {
                   </div>
                 </>
               )}
+              {selectedCompany.subscriptionId && (
+                <>
+                  <div className="pt-4 border-t border-slate-200 mt-4">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Subscription Information</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">Plan</p>
+                    <p className="text-slate-900 font-semibold">{selectedCompany.subscriptionPlan ?? 'Not set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">Status</p>
+                    <div className="mt-1">
+                      <StatusBadge status={selectedCompany.subscriptionStatus ?? 'UNKNOWN'} />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">Billing Cycle</p>
+                    <p className="text-slate-900 font-semibold">{selectedCompany.subscriptionBillingCycle ?? 'Not set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-slate-500">Expires At</p>
+                    <p className="text-slate-900 font-semibold">
+                      {selectedCompany.subscriptionExpiresAt ? formatDate(selectedCompany.subscriptionExpiresAt) : 'Not set'}
+                    </p>
+                  </div>
+                </>
+              )}
               <div>
                 <p className="text-sm font-medium text-slate-500">Status</p>
                 <div className="mt-1">

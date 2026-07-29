@@ -27,7 +27,7 @@ export function PaymentProcessingModal({ plan, billingCycle, onClose, onSuccess 
 
       // Step 2: Initialize payment
       const email = tokenStorage.getEmail() || '';
-      const callbackUrl = `${window.location.origin}/subscription/payment/callback`;
+      const callbackUrl = `${window.location.origin}/employer/subscription/payment/callback`;
       
       const paymentResponse = await paymentApi.initializePayment({
         email,

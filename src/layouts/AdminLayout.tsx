@@ -6,6 +6,7 @@ import {
   Building2,
   FileText,
   CreditCard,
+  DollarSign,
   ShieldCheck,
   Settings,
   LogOut,
@@ -51,6 +52,11 @@ export function AdminLayout() {
     name: 'Subscriptions',
     path: '/admin/subscriptions',
     icon: <CreditCard size={20} />
+  },
+  {
+    name: 'Payments',
+    path: '/admin/payments',
+    icon: <DollarSign size={20} />
   },
   {
     name: 'Audit Logs',

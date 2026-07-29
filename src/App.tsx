@@ -39,6 +39,7 @@ import { AdminCompaniesPage } from './pages/admin/AdminCompaniesPage';
 import { AdminJobsModerationPage } from './pages/admin/AdminJobsModerationPage';
 import { AdminATSPage } from './pages/admin/AdminATSPage';
 import { AdminSubscriptionsPage } from './pages/admin/AdminSubscriptionsPage';
+import { AdminPaymentsPage } from './pages/admin/AdminPaymentsPage';
 import { AdminAuditLogsPage } from './pages/admin/AdminAuditLogsPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { SettingsLayout } from './layouts/SettingsLayout';
@@ -207,6 +208,7 @@ export function App() {
             <Route path="jobs/:id" element={<JobDetailsPage />} />
             <Route path="ats" element={<AdminATSPage />} />
             <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+            <Route path="payments" element={<AdminPaymentsPage />} />
             <Route path="audit" element={<AdminAuditLogsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
           </Route>

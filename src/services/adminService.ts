@@ -2,7 +2,7 @@ import { apiRequest } from '../lib/api';
 import { downloadCsvFromApi } from '../lib/download';
 import { buildPageQuery } from '../types/api';
 import type { PaginatedResponse } from '../types/api';
-import type { AdminDashboard, AdminExportType, AdminOpsResult, AuditEvent, PlatformAnalytics, CompanyModerationResponse, UserModerationResponse, JobModerationResponse } from '../types/admin';
+import type { AdminDashboard, AdminExportType, AdminOpsResult, AuditEvent, PlatformAnalytics, CompanyModerationResponse, UserModerationResponse, JobModerationResponse, SubscriptionModerationResponse, PaymentModerationResponse } from '../types/admin';
 import type { CompanyResponse } from '../types/company';
 
 export function getAdminDashboard(): Promise<AdminDashboard> {
@@ -132,4 +132,26 @@ export function expireStaleOffers(): Promise<AdminOpsResult> {
   return apiRequest<AdminOpsResult>('/api/admin/offers/expire-stale', {
     method: 'POST',
   });
+}
+
+export function listSubscriptions(
+  page: number,
+  size: number,
+  status?: string,
+): Promise<PaginatedResponse<SubscriptionModerationResponse>> {
+  const query = buildPageQuery({ page, size, extra: status ? { status } : {} });
+  return apiRequest<PaginatedResponse<SubscriptionModerationResponse>>(
+    `/api/admin/subscriptions?${query}`,
+  );
+}
+
+export function listPayments(
+  page: number,
+  size: number,
+  status?: string,
+): Promise<PaginatedResponse<PaymentModerationResponse>> {
+  const query = buildPageQuery({ page, size, extra: status ? { status } : {} });
+  return apiRequest<PaginatedResponse<PaymentModerationResponse>>(
+    `/api/admin/payments?${query}`,
+  );
 }

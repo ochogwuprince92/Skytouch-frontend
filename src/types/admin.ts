@@ -77,6 +77,11 @@ export interface CompanyModerationResponse {
   employerRole?: string;
   employerStatus?: string;
   employerEmailVerified?: boolean;
+  subscriptionId?: string;
+  subscriptionPlan?: string;
+  subscriptionStatus?: string;
+  subscriptionBillingCycle?: string;
+  subscriptionExpiresAt?: string;
 }
 
 export interface JobModerationResponse {
@@ -90,4 +95,31 @@ export interface JobModerationResponse {
   locationState: string;
   status: string;
   createdAt: string;
+}
+
+export interface SubscriptionModerationResponse {
+  id: string;
+  companyName: string;
+  companyEmail?: string;
+  plan: string;
+  status: string;
+  billingCycle: string;
+  startDate: string;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface PaymentModerationResponse {
+  id: string;
+  reference: string;
+  companyName?: string;
+  customerEmail: string;
+  amount: number;
+  currency: string;
+  status: string;
+  gatewayResponse?: string | null;
+  paidAt?: string | null;
+  createdAt: string;
+  updatedAt: string | null;
 }
