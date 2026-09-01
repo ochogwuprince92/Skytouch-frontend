@@ -116,25 +116,33 @@ export function SubscriptionPlansPage() {
         </div>
 
         {/* Features Comparison */}
-        <div className="mt-16 max-w-4xl mx-auto">
+        <div className="mt-16 max-w-5xl mx-auto">
           <h2 className="text-2xl font-bold text-slate-900 mb-8 text-center">Plan Features</h2>
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="grid grid-cols-4 border-b border-slate-200">
+            <div className="grid grid-cols-5 border-b border-slate-200">
               <div className="p-4 font-semibold text-slate-900">Feature</div>
+              <div className="p-4 font-semibold text-center text-slate-900">Free</div>
               <div className="p-4 font-semibold text-center text-slate-900">Basic</div>
               <div className="p-4 font-semibold text-center text-primary">Standard</div>
               <div className="p-4 font-semibold text-center text-slate-900">Premium</div>
             </div>
             {[
-              { feature: 'Job Postings', basic: '5 slots', standard: '15 slots', premium: 'Unlimited' },
-              { feature: 'Company Profile', basic: true, standard: true, premium: true },
-              { feature: 'Application Management', basic: true, standard: true, premium: true },
-              { feature: 'Candidate Search', basic: false, standard: true, premium: true },
-              { feature: 'Priority Support', basic: false, standard: true, premium: true },
-              { feature: 'Analytics Dashboard', basic: false, standard: false, premium: true },
+              { feature: 'Job Postings', free: '3 slots', basic: '5 slots', standard: '15 slots', premium: 'Unlimited' },
+              { feature: 'Company Profile', free: true, basic: true, standard: true, premium: true },
+              { feature: 'Application Management', free: true, basic: true, standard: true, premium: true },
+              { feature: 'Candidate Search', free: false, basic: false, standard: true, premium: true },
+              { feature: 'Priority Support', free: false, basic: false, standard: true, premium: true },
+              { feature: 'Analytics Dashboard', free: false, basic: false, standard: false, premium: true },
             ].map((item, index) => (
-              <div key={index} className="grid grid-cols-4 border-b border-slate-100 last:border-0">
+              <div key={index} className="grid grid-cols-5 border-b border-slate-100 last:border-0">
                 <div className="p-4 text-slate-700">{item.feature}</div>
+                <div className="p-4 text-center text-slate-600">
+                  {typeof item.free === 'boolean' ? (
+                    item.free ? <Check className="w-5 h-5 mx-auto text-green-500" /> : '—'
+                  ) : (
+                    item.free
+                  )}
+                </div>
                 <div className="p-4 text-center text-slate-600">
                   {typeof item.basic === 'boolean' ? (
                     item.basic ? <Check className="w-5 h-5 mx-auto text-green-500" /> : '—'

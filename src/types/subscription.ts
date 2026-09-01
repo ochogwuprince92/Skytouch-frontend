@@ -1,4 +1,5 @@
 export enum PlanType {
+  FREE = 'FREE',
   BASIC = 'BASIC',
   STANDARD = 'STANDARD',
   PREMIUM = 'PREMIUM',
@@ -43,6 +44,8 @@ export interface UsageResponse {
   status: SubscriptionStatus;
   expiresAt: string;
   activeJobs: number;
+  slotsAllocated: number;
+  slotsUsed: number;
   remainingSlots: number | null;
   unlimited: boolean;
   canPublish: boolean;

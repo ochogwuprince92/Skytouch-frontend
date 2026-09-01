@@ -7,17 +7,22 @@ import {
   Loader2,
   UserCheck,
   Users,
+  CreditCard,
+  AlertCircle,
 } from 'lucide-react';
 import { FormAlert } from '../../components/FormAlert';
 import { ApiError } from '../../lib/api';
 import { getMyEmployerDashboard } from '../../services/employerService';
 import { getMyCompany } from '../../services/companyService';
+import { getSubscriptionUsage } from '../../services/subscriptionService';
 import type { EmployerDashboard } from '../../types/employer';
 import type { CompanyResponse } from '../../types/company';
+import type { UsageResponse } from '../../types/subscription';
 
 export function EmployerDashboardPage() {
   const [dashboard, setDashboard] = useState<EmployerDashboard | null>(null);
   const [company, setCompany] = useState<CompanyResponse | null>(null);
+  const [usage, setUsage] = useState<UsageResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,13 +30,15 @@ export function EmployerDashboardPage() {
     let cancelled = false;
     async function load() {
       try {
-        const [dash, co] = await Promise.all([
+        const [dash, co, us] = await Promise.all([
           getMyEmployerDashboard(),
           getMyCompany().catch(() => null),
+          getSubscriptionUsage().catch(() => null),
         ]);
         if (!cancelled) {
           setDashboard(dash);
           setCompany(co);
+          setUsage(us);
         }
       } catch (err) {
         if (!cancelled) {
@@ -125,6 +132,42 @@ export function EmployerDashboardPage() {
       {company?.status === 'REJECTED' && (
         <div className="rounded-xl bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger">
           Your company was rejected. Contact support for assistance.
+        </div>
+      )}
+
+      {usage && !usage.unlimited && (
+        <div className={`rounded-xl border px-4 py-3 text-sm flex items-center justify-between ${
+          usage.remainingSlots === 0 
+            ? 'bg-amber-50 border-amber-200 text-amber-900' 
+            : 'bg-slate-50 border-slate-200 text-slate-700'
+        }`}>
+          <div className="flex items-center gap-2">
+            <CreditCard size={16} />
+            <span>
+              {usage.plan === 'FREE' ? 'Free tier' : usage.plan}: {usage.slotsUsed} of {usage.slotsAllocated} job slots used
+            </span>
+          </div>
+          {usage.remainingSlots === 0 && (
+            <Link
+              to="/employer/subscription/plans"
+              className="px-3 py-1.5 bg-primary text-white rounded-lg font-semibold text-xs hover:bg-primary-600">
+              Upgrade
+            </Link>
+          )}
+        </div>
+      )}
+
+      {usage && usage.status !== 'ACTIVE' && (
+        <div className="rounded-xl bg-danger/10 border border-danger/20 px-4 py-3 text-sm text-danger flex items-center gap-2">
+          <AlertCircle size={16} />
+          <span>
+            {usage.status === 'EXPIRED' ? 'Subscription expired' : 'Subscription not active'}
+          </span>
+          <Link
+            to="/employer/subscription/plans"
+            className="px-3 py-1.5 bg-primary text-white rounded-lg font-semibold text-xs hover:bg-primary-600 ml-auto">
+            Renew
+          </Link>
         </div>
       )}
 
