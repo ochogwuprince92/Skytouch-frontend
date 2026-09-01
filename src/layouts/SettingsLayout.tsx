@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
-import { Briefcase, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { LogoMark } from '../components/LogoMark';
 
 export function SettingsLayout() {
   const { user, dashboardPath } = useAuth();
@@ -11,11 +12,9 @@ export function SettingsLayout() {
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
-              <Briefcase size={18} strokeWidth={2.5} />
-            </div>
+            <LogoMark className="w-8 h-8 rounded-lg" />
             <span className="text-lg font-bold text-slate-900">
-              Skytouch<span className="text-primary">Jobs</span>
+              SkyTouch<span className="text-primary">Jobs</span>
             </span>
           </Link>
 

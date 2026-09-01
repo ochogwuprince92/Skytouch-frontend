@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, User } from 'lucide-react';
+import { Loader2, User, X } from 'lucide-react';
 import {
   ApplicationStatusBadge,
   EMPLOYER_STATUS_OPTIONS,
@@ -22,6 +22,10 @@ export function EmployerATSPage() {
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [statusComment, setStatusComment] = useState('');
+  const [showCommentField, setShowCommentField] = useState(false);
+  const [pendingStatusApp, setPendingStatusApp] = useState<ApplicationResponse | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<ApplicationStatus | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,11 +76,43 @@ export function EmployerATSPage() {
     status: ApplicationStatus,
   ) => {
     if (!selectedJobId) return;
+    
+    // Show comment field for REJECTED status (required by backend)
+    if (status === 'REJECTED') {
+      setPendingStatusApp(application);
+      setPendingStatus(status);
+      setShowCommentField(true);
+      return;
+    }
+    
     setUpdatingId(application.id);
     setError(null);
     try {
       await updateApplicationStatus(selectedJobId, application.id, { status });
       setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : 'Unable to update status.',
+      );
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleStatusSubmit = async () => {
+    if (!selectedJobId || !pendingStatusApp || !pendingStatus) return;
+    setUpdatingId(pendingStatusApp.id);
+    setError(null);
+    try {
+      await updateApplicationStatus(selectedJobId, pendingStatusApp.id, {
+        status: pendingStatus,
+        comment: statusComment.trim() || undefined,
+      });
+      setRefreshKey((k) => k + 1);
+      setShowCommentField(false);
+      setStatusComment('');
+      setPendingStatusApp(null);
+      setPendingStatus(null);
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : 'Unable to update status.',
@@ -132,6 +168,60 @@ export function EmployerATSPage() {
 
       {error && <FormAlert message={error} />}
 
+      {showCommentField && pendingStatusApp && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Reject Application</h3>
+                <p className="text-sm text-slate-600 mt-1">
+                  Please provide a reason for rejecting {pendingStatusApp.seekerName}'s application.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCommentField(false);
+                  setStatusComment('');
+                  setPendingStatusApp(null);
+                  setPendingStatus(null);
+                }}
+                className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+            <textarea
+              value={statusComment}
+              onChange={(e) => setStatusComment(e.target.value)}
+              placeholder="Reason for rejection (required)"
+              rows={3}
+              required
+              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm resize-none mb-4"
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCommentField(false);
+                  setStatusComment('');
+                  setPendingStatusApp(null);
+                  setPendingStatus(null);
+                }}
+                className="px-4 py-2 text-slate-600 text-sm font-medium">
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleStatusSubmit}
+                disabled={updatingId === pendingStatusApp.id || !statusComment.trim()}
+                className="px-4 py-2 bg-danger text-white rounded-lg text-sm font-semibold disabled:opacity-60">
+                {updatingId === pendingStatusApp.id ? 'Rejecting…' : 'Reject Application'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {jobs.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
           <p className="text-slate-600 mb-4">
@@ -178,7 +268,7 @@ export function EmployerATSPage() {
                 <div className="flex flex-wrap items-center gap-3">
                   <ApplicationStatusBadge status={app.status} />
                   <select
-                    value={app.status}
+                    value={showCommentField && pendingStatusApp?.id === app.id ? pendingStatus : app.status}
                     disabled={updatingId === app.id}
                     onChange={(e) =>
                       void handleStatusChange(

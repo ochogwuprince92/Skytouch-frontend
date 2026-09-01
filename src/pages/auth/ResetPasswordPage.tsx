@@ -1,105 +1,81 @@
-import React, { useState, useRef } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Lock, Eye, EyeOff, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { FormAlert } from '../../components/FormAlert';
-import { useAuth } from '../../context/AuthContext';
-import { ApiError } from '../../lib/api';
-import { dashboardPathForRole } from '../../lib/roleRoutes';
-import { resetPassword } from '../../services/authService';
+import { authApi, tokenStorage } from '../../services/api';
 
 export function ResetPasswordPage() {
-  const navigate = useNavigate();
-  const { setSession } = useAuth();
   const [searchParams] = useSearchParams();
-  const email = searchParams.get('email') ?? '';
+  const email = searchParams.get('email') || '';
+  const otp = searchParams.get('otp') || '';
 
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  // Password fields
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
-    const digit = value.slice(-1);
-    const newOtp = [...otp];
-    newOtp[index] = digit;
-    setOtp(newOtp);
-    if (digit && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (
-    index: number,
-    e: React.KeyboardEvent<HTMLInputElement>,
-  ) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setValidationError(null);
+    setServerError(null);
 
-    if (!email) {
-      setError('Missing email address. Please request a new reset code.');
+    if (!otp) {
+      setValidationError('Missing verification code. Please start the forgot password process again.');
       return;
     }
-
-    const code = otp.join('');
-    if (code.length !== 6) {
-      setError('Please enter the full 6-digit reset code.');
-      return;
-    }
-
     if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long.');
+      setValidationError('Password must be at least 8 characters.');
       return;
     }
-
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+      setValidationError('Passwords do not match.');
       return;
     }
 
-    setIsSubmitting(true);
+    setIsLoading(true);
     try {
-      const auth = await resetPassword({
-        email,
-        otp: code,
-        newPassword,
-      });
-      // Backend logs the user in immediately and returns an AuthResponse.
-      setSession(auth);
-      navigate(dashboardPathForRole(auth.role), { replace: true });
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError('Unable to reset password. Please try again.');
-      }
+      // POST /api/auth/reset-password — verifies OTP + sets new password + returns token
+      const data = await authApi.resetPassword({ email, otp, newPassword });
+      tokenStorage.save(data.accessToken, data.email, data.role);
+      setIsSuccess(true);
+    } catch (err: any) {
+      setServerError(err.message || 'Password reset failed. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
-  if (!email) {
+  if (isSuccess) {
     return (
-      <div className="text-center">
-        <FormAlert message="No email address provided." />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="text-center">
+
+        <div className="w-16 h-16 bg-success/10 rounded-2xl flex items-center justify-center mx-auto mb-6 text-success">
+          <CheckCircle2 size={32} />
+        </div>
+
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">
+          Password reset
+        </h1>
+        <p className="text-slate-600 mb-8">
+          Your password has been successfully reset. Click below to continue.
+        </p>
+
         <Link
-          to="/forgot-password"
-          className="mt-6 inline-flex items-center text-sm font-medium text-primary hover:text-primary-600">
-          Request a reset code
+          to="/seeker/dashboard"
+          className="w-full flex justify-center items-center gap-2 bg-primary hover:bg-primary-600 text-white py-3 rounded-xl font-bold transition-all shadow-soft active:scale-[0.98]">
+          Continue to Dashboard <ArrowRight size={18} />
         </Link>
-      </div>
-    );
+      </motion.div>);
   }
 
   return (
@@ -107,51 +83,22 @@ export function ResetPasswordPage() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}>
+
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">
           Set new password
         </h1>
         <p className="text-slate-600">
-          Enter the 6-digit code sent to{' '}
-          <span className="font-medium text-slate-900">{email}</span> and choose
-          a new password.
+          Enter your new password for <span className="font-medium text-slate-900">{email}</span>
         </p>
       </div>
 
-      {error && (
-        <div className="mb-5">
-          <FormAlert message={error} />
-        </div>
-      )}
-
       <form className="space-y-5" onSubmit={handleSubmit}>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Reset code
-          </label>
-          <div className="flex justify-center gap-2">
-            {otp.map((digit, index) => (
-              <input
-                key={index}
-                ref={(el) => {
-                  inputRefs.current[index] = el;
-                }}
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handleOtpChange(index, e.target.value)}
-                onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                className="w-11 h-12 text-center text-xl font-bold border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all bg-white"
-              />
-            ))}
-          </div>
-        </div>
 
+        {/* New password */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            New password
+            New Password
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -163,9 +110,7 @@ export function ResetPasswordPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               className="block w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               placeholder="••••••••"
-              minLength={8}
-              required
-            />
+              required />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -173,14 +118,13 @@ export function ResetPasswordPage() {
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
-          <p className="mt-1.5 text-xs text-slate-500">
-            Must be at least 8 characters long.
-          </p>
+          <p className="mt-1.5 text-xs text-slate-500">Must be at least 8 characters long.</p>
         </div>
 
+        {/* Confirm password */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Confirm password
+            Confirm Password
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -192,9 +136,7 @@ export function ResetPasswordPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="block w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               placeholder="••••••••"
-              minLength={8}
-              required
-            />
+              required />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -204,13 +146,24 @@ export function ResetPasswordPage() {
           </div>
         </div>
 
+        {validationError && (
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 p-3 rounded-xl">
+            {validationError}
+          </p>
+        )}
+
+        {serverError && (
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 p-3 rounded-xl">
+            {serverError}
+          </p>
+        )}
+
         <button
           type="submit"
-          disabled={isSubmitting}
-          className="w-full flex justify-center items-center gap-2 bg-primary hover:bg-primary-600 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold transition-all shadow-soft active:scale-[0.98] mt-2">
-          {isSubmitting ? 'Resetting…' : 'Reset password'} <ArrowRight size={18} />
+          disabled={isLoading}
+          className="w-full flex justify-center items-center gap-2 bg-primary hover:bg-primary-600 text-white py-3 rounded-xl font-bold transition-all shadow-soft active:scale-[0.98] mt-2 disabled:opacity-60 disabled:cursor-not-allowed">
+          {isLoading ? 'Resetting...' : <> Reset Password <ArrowRight size={18} /> </>}
         </button>
       </form>
-    </motion.div>
-  );
+    </motion.div>);
 }

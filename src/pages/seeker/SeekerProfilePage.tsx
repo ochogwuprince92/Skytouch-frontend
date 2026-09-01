@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Loader2, Upload } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Loader2, Upload } from 'lucide-react';
 import { FormAlert } from '../../components/FormAlert';
-import { StateSelect } from '../../components/StateSelect';
+import { LocationSelect } from '../../components/LocationSelect';
+import { EnumSelect, JOB_ROLE_OPTIONS, QUALIFICATION_OPTIONS, GENDER_OPTIONS } from '../../components/EnumSelect';
 import { ApiError } from '../../lib/api';
 import {
   completeOnboarding,
@@ -12,6 +13,7 @@ import {
 import type { Gender, JobSeekerResponse } from '../../types/seeker';
 
 export function SeekerProfilePage() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<JobSeekerResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -69,8 +71,17 @@ export function SeekerProfilePage() {
     setError(null);
     setSuccess(null);
     try {
+      const previousOpenToWork = profile?.openToWork ?? true;
+      const hasOnboardingChanges = Boolean(
+        cvFile ||
+          job.trim() ||
+          qualification.trim() ||
+          about.trim() ||
+          openToWork !== previousOpenToWork,
+      );
+
       let updated = profile;
-      if (cvFile || job || qualification || about) {
+      if (hasOnboardingChanges) {
         updated = await completeOnboarding({
           job: job.trim() || undefined,
           qualification: qualification.trim() || undefined,
@@ -79,6 +90,7 @@ export function SeekerProfilePage() {
           cv: cvFile ?? undefined,
         });
       }
+
       updated = await updateKyc({
         nin: nin.trim() || undefined,
         birthday: birthday || undefined,
@@ -90,9 +102,14 @@ export function SeekerProfilePage() {
           .filter(Boolean)
           .join(', ') || undefined,
       });
+
       setProfile(updated);
       setCvFile(null);
       setSuccess('Profile saved successfully.');
+      // Redirect to dashboard after successful save
+      setTimeout(() => {
+        navigate('/seeker/dashboard');
+      }, 1000);
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : 'Unable to save profile.',
@@ -117,6 +134,15 @@ export function SeekerProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <Link
+          to="/seeker/dashboard"
+          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">
+          <ArrowLeft size={16} />
+          Back to dashboard
+        </Link>
+      </div>
+
       <div>
         <h1 className="text-2xl font-bold text-slate-900">My profile</h1>
         <p className="text-slate-600 mt-1">{displayName}</p>
@@ -129,17 +155,19 @@ export function SeekerProfilePage() {
         onSubmit={handleSaveProfile}
         className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5 shadow-sm">
         <h2 className="font-bold text-slate-900">Professional info</h2>
-        <input
+        <EnumSelect
           value={job}
-          onChange={(e) => setJob(e.target.value)}
+          onChange={setJob}
+          options={JOB_ROLE_OPTIONS}
           placeholder="Current / desired role"
-          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+          className="w-full"
         />
-        <input
+        <EnumSelect
           value={qualification}
-          onChange={(e) => setQualification(e.target.value)}
+          onChange={setQualification}
+          options={QUALIFICATION_OPTIONS}
           placeholder="Qualification"
-          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+          className="w-full"
         />
         <textarea
           value={about}
@@ -197,17 +225,18 @@ export function SeekerProfilePage() {
             onChange={(e) => setBirthday(e.target.value)}
             className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
           />
-          <select
+          <EnumSelect
             value={gender}
-            onChange={(e) => setGender(e.target.value as Gender | '')}
-            className="px-4 py-2.5 rounded-xl border border-slate-200 text-sm">
-            <option value="">Gender</option>
-            <option value="MALE">Male</option>
-            <option value="FEMALE">Female</option>
-            <option value="OTHER">Other</option>
-          </select>
+            onChange={setGender}
+            options={GENDER_OPTIONS}
+            placeholder="Gender"
+            className="px-4 py-2.5"
+          />
         </div>
-        <StateSelect value={addressState} onChange={setAddressState} />
+        <LocationSelect
+          stateValue={addressState}
+          onStateChange={setAddressState}
+        />
         <input
           value={addressLga}
           onChange={(e) => setAddressLga(e.target.value)}

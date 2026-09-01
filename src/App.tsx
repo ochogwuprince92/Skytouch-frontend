@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { prefetchCountries } from './services/locationService';
 import { GuestRoute, ProtectedRoute } from './components/ProtectedRoute';
 import { PublicLayout } from './layouts/PublicLayout';
 import { LandingPage } from './pages/LandingPage';
@@ -14,6 +15,7 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { VerifyEmailPage } from './pages/auth/VerifyEmailPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { OtpVerificationPage } from './pages/auth/OtpVerificationPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { SeekerLayout } from './layouts/SeekerLayout';
 import { SeekerDashboardPage } from './pages/seeker/SeekerDashboardPage';
@@ -33,8 +35,11 @@ import { AdminLayout } from './layouts/AdminLayout';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminEmployersPage } from './pages/admin/AdminEmployersPage';
+import { AdminCompaniesPage } from './pages/admin/AdminCompaniesPage';
 import { AdminJobsModerationPage } from './pages/admin/AdminJobsModerationPage';
+import { AdminATSPage } from './pages/admin/AdminATSPage';
 import { AdminSubscriptionsPage } from './pages/admin/AdminSubscriptionsPage';
+import { AdminPaymentsPage } from './pages/admin/AdminPaymentsPage';
 import { AdminAuditLogsPage } from './pages/admin/AdminAuditLogsPage';
 import { AdminSettingsPage } from './pages/admin/AdminSettingsPage';
 import { SettingsLayout } from './layouts/SettingsLayout';
@@ -46,8 +51,21 @@ import { SeekerJobAlertsPage } from './pages/seeker/SeekerJobAlertsPage';
 import { EmployerOnboardingGuard } from './components/EmployerOnboardingGuard';
 import { EmployerOnboardingPage } from './pages/employer/EmployerOnboardingPage';
 import { ApplicationDetailPage } from './pages/applications/ApplicationDetailPage';
+import { AboutPage } from './pages/AboutPage';
+import { BlogPage } from './pages/BlogPage';
+import { ResourcesPage } from './pages/ResourcesPage';
+import { HelpPage } from './pages/HelpPage';
+import { PaymentCallbackPage } from './pages/subscription/PaymentCallbackPage';
+import { PaystackTestPage } from './pages/PaystackTestPage';
+import { SubscriptionPlansPage } from './pages/subscription/SubscriptionPlansPage';
+import { CurrentSubscriptionPage } from './pages/subscription/CurrentSubscriptionPage';
+import { SubscriptionUsagePage } from './pages/subscription/SubscriptionUsagePage';
 
 export function App() {
+  useEffect(() => {
+    prefetchCountries();
+  }, []);
+
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -59,6 +77,12 @@ export function App() {
             <Route path="/companies" element={<CompaniesListingPage />} />
             <Route path="/companies/:id" element={<CompanyDetailsPage />} />
             <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/resources" element={<ResourcesPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/payment/callback" element={<PaymentCallbackPage />} />
+            <Route path="/payment/test" element={<PaystackTestPage />} />
           </Route>
 
           <Route
@@ -71,6 +95,7 @@ export function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/verify-otp" element={<OtpVerificationPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
           </Route>
 
@@ -92,6 +117,13 @@ export function App() {
             path="/auth/reset-password"
             element={<Navigate to="/reset-password" replace />}
           />
+
+          {/* Subscription route redirects */}
+          <Route path="/subscription" element={<Navigate to="/employer/subscription/current" replace />} />
+          <Route path="/subscription/plans" element={<Navigate to="/employer/subscription/plans" replace />} />
+          <Route path="/subscription/current" element={<Navigate to="/employer/subscription/current" replace />} />
+          <Route path="/subscription/usage" element={<Navigate to="/employer/subscription/usage" replace />} />
+          <Route path="/subscription/payment/callback" element={<Navigate to="/employer/subscription/payment/callback" replace />} />
 
           <Route
             path="/settings"
@@ -115,6 +147,8 @@ export function App() {
             <Route element={<SeekerLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<SeekerDashboardPage />} />
+              <Route path="jobs" element={<JobsListingPage />} />
+              <Route path="jobs/:id" element={<JobDetailsPage />} />
               <Route path="profile" element={<SeekerProfilePage />} />
               <Route path="applications" element={<SeekerApplicationsPage />} />
               <Route
@@ -149,6 +183,10 @@ export function App() {
               <Route path="messages" element={<EmployerMessagesPage />} />
               <Route path="analytics" element={<EmployerAnalyticsPage />} />
               <Route path="settings" element={<EmployerSettingsPage />} />
+              <Route path="subscription/plans" element={<SubscriptionPlansPage />} />
+              <Route path="subscription/current" element={<CurrentSubscriptionPage />} />
+              <Route path="subscription/usage" element={<SubscriptionUsagePage />} />
+              <Route path="subscription/payment/callback" element={<PaymentCallbackPage />} />
             </Route>
           </Route>
 
@@ -163,8 +201,14 @@ export function App() {
             <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="employers" element={<AdminEmployersPage />} />
+            <Route path="companies" element={<AdminCompaniesPage />} />
             <Route path="jobs" element={<AdminJobsModerationPage />} />
+            <Route path="jobs/:id/applications" element={<AdminATSPage />} />
+            <Route path="jobs/:jobId/applications/:id" element={<ApplicationDetailPage role="ADMIN" />} />
+            <Route path="jobs/:id" element={<JobDetailsPage />} />
+            <Route path="ats" element={<AdminATSPage />} />
             <Route path="subscriptions" element={<AdminSubscriptionsPage />} />
+            <Route path="payments" element={<AdminPaymentsPage />} />
             <Route path="audit" element={<AdminAuditLogsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
           </Route>

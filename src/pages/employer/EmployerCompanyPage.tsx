@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Building2, Loader2 } from 'lucide-react';
 import { FormAlert } from '../../components/FormAlert';
+import { LocationSelect } from '../../components/LocationSelect';
+import { EnumSelect, INDUSTRY_OPTIONS } from '../../components/EnumSelect';
 import { companyInitials } from '../../lib/format';
 import { ApiError } from '../../lib/api';
 import { getMyCompany, updateMyCompany } from '../../services/companyService';
@@ -12,7 +14,9 @@ export function EmployerCompanyPage() {
   const [description, setDescription] = useState('');
   const [industry, setIndustry] = useState('');
   const [website, setWebsite] = useState('');
-  const [address, setAddress] = useState('');
+  const [addressState, setAddressState] = useState('');
+  const [addressLga, setAddressLga] = useState('');
+  const [addressLine, setAddressLine] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,11 +32,9 @@ export function EmployerCompanyPage() {
           setDescription(data.description ?? '');
           setIndustry(data.industry ?? '');
           setWebsite(data.website ?? '');
-          setAddress(
-            [data.addressLine, data.addressLga, data.addressState]
-              .filter(Boolean)
-              .join(', '),
-          );
+          setAddressState(data.addressState ?? '');
+          setAddressLga(data.addressLga ?? '');
+          setAddressLine(data.addressLine ?? '');
         }
       })
       .catch((err) => {
@@ -56,12 +58,16 @@ export function EmployerCompanyPage() {
     setError(null);
     setSuccess(null);
     try {
+      const address =
+        [addressLine.trim(), addressLga.trim(), addressState]
+          .filter(Boolean)
+          .join(', ') || undefined;
       const updated = await updateMyCompany({
         name: name.trim(),
         description: description.trim() || undefined,
         industry: industry.trim() || undefined,
         website: website.trim() || undefined,
-        address: address.trim() || undefined,
+        address,
       });
       setCompany(updated);
       setSuccess('Company profile updated.');
@@ -147,10 +153,12 @@ export function EmployerCompanyPage() {
           <label className="block text-sm font-semibold text-slate-700 mb-1.5">
             Industry
           </label>
-          <input
+          <EnumSelect
             value={industry}
-            onChange={(e) => setIndustry(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+            onChange={setIndustry}
+            options={INDUSTRY_OPTIONS}
+            placeholder="Select industry"
+            className="w-full"
           />
         </div>
         <div>
@@ -164,13 +172,27 @@ export function EmployerCompanyPage() {
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
           />
         </div>
+        <LocationSelect
+          stateValue={addressState}
+          onStateChange={setAddressState}
+        />
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-            Address
+            LGA
           </label>
           <input
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            value={addressLga}
+            onChange={(e) => setAddressLga(e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            Street address
+          </label>
+          <input
+            value={addressLine}
+            onChange={(e) => setAddressLine(e.target.value)}
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm"
           />
         </div>

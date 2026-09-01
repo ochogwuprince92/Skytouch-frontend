@@ -38,7 +38,7 @@ export function JobDetailsPage() {
   const [applySuccess, setApplySuccess] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [coverLetter, setCoverLetter] = useState('');
-  const [hasCv, setHasCv] = useState<boolean | null>(null);
+  const [cvFile, setCvFile] = useState<File | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -57,6 +57,7 @@ export function JobDetailsPage() {
         }
       } catch (err) {
         if (!cancelled) {
+          console.error('Failed to load job:', err);
           setError(
             err instanceof ApiError ? err.message : 'Failed to load job.',
           );
@@ -74,16 +75,20 @@ export function JobDetailsPage() {
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'JOB_SEEKER') {
-      setHasCv(null);
       return;
     }
     let cancelled = false;
     void getMyProfile()
       .then((profile) => {
-        if (!cancelled) setHasCv(Boolean(profile.cv));
+        if (!cancelled) {
+          // Check if user has profile CV
+          // If not, they'll need to upload custom CV for each application
+        }
       })
       .catch(() => {
-        if (!cancelled) setHasCv(false);
+        if (!cancelled) {
+          // Profile fetch failed
+        }
       });
     return () => {
       cancelled = true;
@@ -105,16 +110,11 @@ export function JobDetailsPage() {
       return;
     }
 
-    if (hasCv === false) {
-      setApplyError('Upload your CV before applying.');
-      return;
-    }
-
     setIsApplying(true);
     try {
       await applyToJob(job.id, {
         coverLetter: coverLetter.trim() || undefined,
-      });
+      }, cvFile || undefined);
       setApplySuccess(true);
     } catch (err) {
       setApplyError(
@@ -155,7 +155,7 @@ export function JobDetailsPage() {
     return (
       <div className="pt-24 pb-20 min-h-screen max-w-2xl mx-auto px-4">
         <FormAlert message={error ?? 'Job not found.'} />
-        <Link to="/jobs" className="mt-6 inline-block text-primary font-semibold">
+        <Link to={isAuthenticated && user?.role === 'JOB_SEEKER' ? '/seeker/jobs' : isAuthenticated && user?.role === 'ADMIN' ? '/admin/jobs' : '/jobs'} className="mt-6 inline-block text-primary font-semibold">
           ← Back to jobs
         </Link>
       </div>
@@ -169,7 +169,7 @@ export function JobDetailsPage() {
     <div className="pt-24 pb-20 bg-slate-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Link
-          to="/jobs"
+          to={isAuthenticated && user?.role === 'JOB_SEEKER' ? '/seeker/jobs' : isAuthenticated && user?.role === 'ADMIN' ? '/admin/jobs' : '/jobs'}
           className="inline-flex items-center text-slate-500 hover:text-primary font-medium mb-6 transition-colors">
           <ArrowLeft size={16} className="mr-2" />
           Back to jobs
@@ -209,32 +209,47 @@ export function JobDetailsPage() {
                 <div className="rounded-xl bg-success/10 text-success px-4 py-3 text-sm font-semibold text-center">
                   Application submitted!
                 </div>
-              ) : hasCv === false && isAuthenticated && user?.role === 'JOB_SEEKER' ? (
+              ) : !isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => void handleApply()}
+                  className="w-full bg-primary hover:bg-primary-600 text-white px-6 py-3.5 rounded-xl font-bold transition-all shadow-soft">
+                  Sign in to apply
+                </button>
+              ) : user?.role !== 'JOB_SEEKER' ? (
                 <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-center">
-                  <p className="text-amber-900 font-medium mb-2">
-                    Upload your CV to apply
+                  <p className="text-amber-900 font-medium">
+                    Only job seekers can apply
                   </p>
-                  <Link
-                    to="/seeker/onboarding"
-                    className="text-primary font-semibold hover:underline">
-                    Complete profile →
-                  </Link>
                 </div>
               ) : (
                 <>
-                  {isAuthenticated && user?.role === 'JOB_SEEKER' && (
-                    <textarea
-                      value={coverLetter}
-                      onChange={(e) => setCoverLetter(e.target.value)}
-                      rows={3}
-                      placeholder="Add a short cover letter (optional)"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm resize-none"
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      CV <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={(e) => setCvFile(e.target.files?.[0] || null)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm"
+                      required
                     />
-                  )}
+                    <p className="text-xs text-slate-500 mt-1">
+                      Upload your CV for this application (PDF, DOC, or DOCX)
+                    </p>
+                  </div>
+                  <textarea
+                    value={coverLetter}
+                    onChange={(e) => setCoverLetter(e.target.value)}
+                    rows={3}
+                    placeholder="Add a short cover letter (optional)"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary text-sm resize-none"
+                  />
                   <button
                     type="button"
                     onClick={() => void handleApply()}
-                    disabled={isApplying || (user?.role === 'JOB_SEEKER' && hasCv === null)}
+                    disabled={isApplying}
                     className="w-full bg-primary hover:bg-primary-600 disabled:opacity-60 text-white px-6 py-3.5 rounded-xl font-bold transition-all shadow-soft">
                     {isApplying ? 'Applying…' : 'Apply now'}
                   </button>
@@ -244,7 +259,7 @@ export function JobDetailsPage() {
                 <p className="text-sm text-danger text-center">{applyError}</p>
               )}
               <div className="flex gap-3">
-                {isAuthenticated && user?.role === 'JOB_SEEKER' && (
+                {isAuthenticated && user?.role === 'JOB_SEEKER' ? (
                   <button
                     type="button"
                     disabled={isSaving}
@@ -256,6 +271,13 @@ export function JobDetailsPage() {
                     }`}>
                     <BookmarkPlus size={18} />
                     {isSaved ? 'Saved' : 'Save'}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="flex-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-xl font-medium transition-all flex items-center justify-center gap-2 opacity-50 cursor-not-allowed">
+                    <BookmarkPlus size={18} />
+                    Save
                   </button>
                 )}
                 <button

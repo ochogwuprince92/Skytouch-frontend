@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Bell, Loader2, Plus, Trash2 } from 'lucide-react';
 import { FormAlert } from '../../components/FormAlert';
 import { PaginatedList } from '../../components/PaginatedList';
-import { StateSelect } from '../../components/StateSelect';
+import { LocationSelect } from '../../components/LocationSelect';
 import { ApiError } from '../../lib/api';
 import { formatDate } from '../../lib/format';
 import {
@@ -147,7 +147,10 @@ export function SeekerJobAlertsPage() {
               <option value="ONSITE">Onsite</option>
             </select>
           </div>
-          <StateSelect value={locationState} onChange={setLocationState} />
+          <LocationSelect
+            stateValue={locationState}
+            onStateChange={setLocationState}
+          />
           <input
             type="text"
             value={industry}

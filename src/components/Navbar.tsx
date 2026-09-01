@@ -1,11 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Briefcase, Menu, X, ChevronDown } from 'lucide-react';
+import { Menu, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { LogoMark } from './LogoMark';
+import { useAuth } from '../context/AuthContext';
+
 export function Navbar() {
+  const { user } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -17,6 +22,19 @@ export function Navbar() {
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  const handlePricingClick = () => {
+    if (user && user.role === 'EMPLOYER') {
+      navigate('/employer/subscription/plans');
+    } else if (user) {
+      // Redirect other authenticated users to their dashboard
+      if (user.role === 'JOB_SEEKER') navigate('/seeker/dashboard');
+      if (user.role === 'ADMIN') navigate('/admin/dashboard');
+    } else {
+      // Unauthenticated users go to public pricing page
+      navigate('/pricing');
+    }
+  };
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b ${isScrolled ? 'bg-white/80 backdrop-blur-lg border-slate-200/50 py-3' : 'bg-white border-transparent py-5'}`}>
@@ -28,11 +46,9 @@ export function Navbar() {
             to="/"
             className="flex items-center gap-2.5 cursor-pointer group">
             
-            <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white transition-transform group-hover:scale-105">
-              <Briefcase size={16} strokeWidth={2.5} />
-            </div>
+            <LogoMark className="w-8 h-8 rounded-lg" />
             <span className="text-xl font-bold text-slate-900 tracking-tight">
-              Skytouch<span className="text-slate-400 font-medium">Jobs</span>
+              SkyTouch<span className="text-slate-400 font-medium">Jobs</span>
             </span>
           </Link>
 
@@ -50,19 +66,42 @@ export function Navbar() {
               
               Companies
             </Link>
-            <Link
-              to="/pricing"
+            <button
+              onClick={handlePricingClick}
               className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
               
-              Pricing
-            </Link>
-            <div className="relative group cursor-pointer">
-              <div className="flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
+              Subscription
+            </button>
+            <div className="relative group">
+              <div className="flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer">
                 Platform
                 <ChevronDown
                   size={14}
                   className="group-hover:rotate-180 transition-transform duration-200 opacity-50" />
-                
+              </div>
+              <div className="absolute top-full left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="py-2">
+                  <Link
+                    to="/about"
+                    className="block px-4 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+                    About Us
+                  </Link>
+                  <Link
+                    to="/blog"
+                    className="block px-4 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+                    Blog
+                  </Link>
+                  <Link
+                    to="/resources"
+                    className="block px-4 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+                    Resources
+                  </Link>
+                  <Link
+                    to="/help"
+                    className="block px-4 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors">
+                    Help Center
+                  </Link>
+                </div>
               </div>
             </div>
           </nav>
@@ -124,12 +163,26 @@ export function Navbar() {
               
                 Companies
               </Link>
-              <Link
-              to="/pricing"
-              className="text-lg font-semibold text-slate-900">
-              
-                Pricing
-              </Link>
+              <button
+              onClick={handlePricingClick}
+              className="text-lg font-semibold text-slate-900 text-left">
+                Subscription
+              </button>
+              <div className="flex flex-col gap-4">
+                <span className="text-lg font-semibold text-slate-900">Platform</span>
+                <Link to="/about" className="text-base text-slate-600">
+                  About Us
+                </Link>
+                <Link to="/blog" className="text-base text-slate-600">
+                  Blog
+                </Link>
+                <Link to="/resources" className="text-base text-slate-600">
+                  Resources
+                </Link>
+                <Link to="/help" className="text-base text-slate-600">
+                  Help Center
+                </Link>
+              </div>
               <hr className="border-slate-100" />
               <Link
               to="/login"
