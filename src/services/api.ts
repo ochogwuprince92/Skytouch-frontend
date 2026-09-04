@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:8083'
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'https://skytouchjobs.up.railway.app'
 
 const authHeaders = () => {
   const token = sessionStorage.getItem('skytouch_access_token');
