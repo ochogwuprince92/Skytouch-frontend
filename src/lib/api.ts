@@ -1,7 +1,7 @@
 import type { ApiErrorBody } from '../types/auth';
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_URL ?? 'http://localhost:8083';
+  import.meta.env.VITE_API_URL ?? 'https://skytouchjobs.up.railway.app';
 
 export class ApiError extends Error {
   status: number;
