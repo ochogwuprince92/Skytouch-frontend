@@ -1,10 +1,8 @@
-import React from 'react';
 import {
   LayoutDashboard,
   Zap,
   Users,
   BarChart3,
-  Shield,
   CheckCircle2,
   ArrowRight } from
 'lucide-react';
@@ -21,7 +19,7 @@ export function Features() {
             scale your team.
           </h2>
           <p className="text-lg text-slate-600 leading-relaxed">
-            Skytouch Jobs combines a massive talent marketplace with a
+            SkyTouch Jobs combines a massive talent marketplace with a
             world-class Applicant Tracking System built for modern enterprise
             workflows.
           </p>

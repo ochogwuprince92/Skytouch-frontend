@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Building2,
@@ -8,6 +7,7 @@ import {
   BookmarkPlus,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 import {
   companyColor,
   companyInitials,
@@ -34,6 +34,7 @@ export function JobCard({
   saved,
   onToggleSave,
 }: JobCardProps) {
+  const { isAuthenticated, user } = useAuth();
   const color = companyColor(job.companyName);
   const logo = companyInitials(job.companyName);
 
@@ -92,15 +93,20 @@ export function JobCard({
         </div>
       </div>
 
-      <div className="flex items-center justify-end pt-4 border-t border-slate-100">
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-slate-400 font-medium">
-            {formatRelativeTime(job.publishedAt ?? job.createdAt)}
-          </span>
+      <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+        <span className="text-xs text-slate-400 font-medium">
+          {formatRelativeTime(job.publishedAt ?? job.createdAt)}
+        </span>
+        <div className="flex items-center gap-3">
           <Link
-            to={`/jobs/${job.id}`}
+            to={isAuthenticated && user?.role === 'JOB_SEEKER' ? `/seeker/jobs/${job.id}` : `/jobs/${job.id}`}
             className="text-sm font-semibold text-primary hover:text-primary-600">
             View job →
+          </Link>
+          <Link
+            to={isAuthenticated && user?.role === 'JOB_SEEKER' ? `/seeker/jobs/${job.id}` : `/jobs/${job.id}`}
+            className="text-sm font-bold bg-primary hover:bg-primary-600 text-white px-4 py-2 rounded-lg transition-all">
+            {isAuthenticated && user?.role === 'JOB_SEEKER' ? 'Apply' : 'View'}
           </Link>
         </div>
       </div>

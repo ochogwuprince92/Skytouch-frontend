@@ -56,3 +56,70 @@ export interface AdminOpsResult {
   jobsIncluded?: number;
   offersExpired?: number;
 }
+
+export interface UserModerationResponse {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  emailVerified: boolean;
+  createdAt: string;
+}
+
+export interface CompanyModerationResponse {
+  id: string;
+  name: string;
+  industry: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string | null;
+  employerEmail?: string;
+  employerRole?: string;
+  employerStatus?: string;
+  employerEmailVerified?: boolean;
+  subscriptionId?: string;
+  subscriptionPlan?: string;
+  subscriptionStatus?: string;
+  subscriptionBillingCycle?: string;
+  subscriptionExpiresAt?: string;
+}
+
+export interface JobModerationResponse {
+  id: string;
+  companyName: string;
+  title: string;
+  employmentType: string;
+  workMode: string;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  locationState: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface SubscriptionModerationResponse {
+  id: string;
+  companyName: string;
+  companyEmail?: string;
+  plan: string;
+  status: string;
+  billingCycle: string;
+  startDate: string;
+  expiresAt: string;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface PaymentModerationResponse {
+  id: string;
+  reference: string;
+  companyName?: string;
+  customerEmail: string;
+  amount: number;
+  currency: string;
+  status: string;
+  gatewayResponse?: string | null;
+  paidAt?: string | null;
+  createdAt: string;
+  updatedAt: string | null;
+}

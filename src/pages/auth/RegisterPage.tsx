@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Mail,
   Lock,
@@ -7,218 +7,327 @@ import {
   Briefcase,
   UserCircle2,
   ArrowRight,
-  Phone,
-  Building2,
-} from 'lucide-react';
+  Eye,
+  EyeOff } from
+'lucide-react';
 import { motion } from 'framer-motion';
-import { FormAlert } from '../../components/FormAlert';
-import { ApiError } from '../../lib/api';
-import { register } from '../../services/authService';
-import type { UserType } from '../../types/auth';
+import { authApi } from '../../services/api';
+type SeekerForm = {
 
+  email: string;
+  password: string;
+  confirmPassword: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  phone: string;
+};
+type SeekerErrors = Partial<Record<keyof SeekerForm, string>>;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Fixed country dialing code. The user types only their local number.
+const COUNTRY_CODE = '+234';
+function validateSeeker(values: SeekerForm): SeekerErrors {
+  const errors: SeekerErrors = {};
+  if (!values.email.trim()) {
+    errors.email = 'Email is required';
+  } else if (!EMAIL_RE.test(values.email.trim())) {
+    errors.email = 'Email must be valid';
+  }
+  if (!values.password) {
+    errors.password = 'Password is required';
+  } else if (values.password.length < 8) {
+    errors.password = 'Password must be at least 8 characters';
+  }
+  if (!values.confirmPassword) {
+    errors.confirmPassword = 'Please confirm your password';
+  } else if (values.confirmPassword !== values.password) {
+    errors.confirmPassword = 'Passwords do not match';
+  }
+  if (values.firstName.length > 255) {
+    errors.firstName = 'First name must not exceed 255 characters';
+  }
+  if (values.middleName.length > 255) {
+    errors.middleName = 'Middle name must not exceed 255 characters';
+  }
+  if (values.lastName.length > 255) {
+    errors.lastName = 'Last name must not exceed 255 characters';
+  }
+  if (!values.phone.trim()) {
+    errors.phone = 'Phone Number is required';
+  } else if (COUNTRY_CODE.length + values.phone.length > 50) {
+    errors.phone = 'Phone must not exceed 50 characters';
+  }
+  return errors;
+}
+const inputBase =
+'block w-full pl-10 pr-3 py-2.5 border rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all';
 export function RegisterPage() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const initialRole: UserType =
-    searchParams.get('role') === 'employer' ? 'EMPLOYER' : 'JOB_SEEKER';
-
-  const [role, setRole] = useState<UserType>(initialRole);
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [companyName, setCompanyName] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const initialRole =
+  searchParams.get('role') === 'employer' ? 'employer' : 'seeker';
+  const [role, setRole] = useState<'seeker' | 'employer'>(initialRole);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [values, setValues] = useState<SeekerForm>({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    phone: ''
+  });
+  const [errors, setErrors] = useState<SeekerErrors>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const handleChange =
+  (field: keyof SeekerForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setValues((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+    setErrors((prev) =>
+    prev[field] ?
+    {
+      ...prev,
+      [field]: undefined
+    } :
+    prev
+    );
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    const nextErrors = validateSeeker(values);
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
 
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters long.');
-      return;
-    }
-
-    setIsSubmitting(true);
+    setIsLoading(true);
+    setServerError(null);
     try {
-      await register({
-        userType: role,
-        email: email.trim(),
-        password,
-        confirmPassword,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        phone: phone.trim(),
-        ...(role === 'EMPLOYER' && companyName.trim()
-          ? { companyName: companyName.trim() }
-          : {}),
+      await authApi.register({
+        email: values.email.trim(),
+        password: values.password,
+        confirmPassword: values.confirmPassword,
+        firstName: values.firstName,
+        middleName: values.middleName || undefined,
+        lastName: values.lastName,
+        phone: `${COUNTRY_CODE}${values.phone}`,
+        userType: role === 'seeker' ? 'JOB_SEEKER' : 'EMPLOYER',
       });
+      // Store the email in a variable
+        const emailToVerify = values.email.trim();
 
-      navigate(
-        `/verify-email?email=${encodeURIComponent(email.trim())}&registered=1`,
-      );
-    } catch (err) {
-      if (err instanceof ApiError) {
-        if (err.status === 409) {
-          setError('Email already registered.');
-        } else {
-          setError(err.message);
-        }
-      } else {
-        setError('Unable to create account. Please try again.');
-      }
+        // Debug to confirm the value
+        console.log('Navigating to verify with email:', emailToVerify);
+
+        // Navigate to verification page
+        navigate(`/verify-email?email=${encodeURIComponent(emailToVerify)}`);
+    } catch (err: any) {
+      setServerError(err.message || 'Registration failed. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
-
+  const fieldClasses = (field: keyof SeekerForm) =>
+  `${inputBase} ${errors[field] ? 'border-red-300 focus:ring-red-400' : 'border-slate-200 focus:ring-primary'}`;
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}>
+      initial={{
+        opacity: 0,
+        y: 20
+      }}
+      animate={{
+        opacity: 1,
+        y: 0
+      }}
+      transition={{
+        duration: 0.4
+      }}>
+      
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">
           Create an account
         </h1>
         <p className="text-slate-600">
-          Join Skytouch Jobs to find your next opportunity or hire top talent.
+          Join SkyTouch Jobs to find your next opportunity or hire top talent.
         </p>
       </div>
 
+      {/* Role Selection */}
       <div className="flex p-1 bg-slate-100 rounded-xl mb-8">
         <button
           type="button"
-          onClick={() => setRole('JOB_SEEKER')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${role === 'JOB_SEEKER' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          onClick={() => setRole('seeker')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${role === 'seeker' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          
           <UserCircle2
             size={18}
-            className={role === 'JOB_SEEKER' ? 'text-primary' : ''}
-          />
-          I&apos;m looking for work
+            className={role === 'seeker' ? 'text-primary' : ''} />
+          
+          I am a Job Seeker
         </button>
         <button
           type="button"
-          onClick={() => setRole('EMPLOYER')}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${role === 'EMPLOYER' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          onClick={() => setRole('employer')}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all ${role === 'employer' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+          
           <Briefcase
             size={18}
-            className={role === 'EMPLOYER' ? 'text-primary' : ''}
-          />
-          I&apos;m hiring
+            className={role === 'employer' ? 'text-primary' : ''} />
+          
+          I am an Employer
         </button>
       </div>
 
-      {error && (
-        <div className="mb-5">
-          <FormAlert message={error} />
-        </div>
-      )}
-
-      <form className="space-y-5" onSubmit={handleSubmit}>
-        <div className="grid grid-cols-2 gap-4">
+      <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+        {/* Name fields */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              First name
+            <label
+              htmlFor="firstName"
+              className="block text-sm font-medium text-slate-700 mb-1.5">
+              
+              First Name
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <User size={18} className="text-slate-400" />
               </div>
               <input
+                id="firstName"
                 type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                maxLength={255}
+                value={values.firstName}
+                onChange={handleChange('firstName')}
+                className={fieldClasses('firstName')}
                 placeholder="John"
-                required
-              />
+                aria-invalid={!!errors.firstName} />
+              
             </div>
+            {errors.firstName &&
+            <p className="mt-1.5 text-xs text-red-600">{errors.firstName}</p>
+            }
           </div>
+
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Last name
+            <label
+              htmlFor="lastName"
+              className="block text-sm font-medium text-slate-700 mb-1.5">
+              
+              Last Name
             </label>
-            <input
-              type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              className="block w-full px-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-              placeholder="Doe"
-              required
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <User size={18} className="text-slate-400" />
+              </div>
+              <input
+                id="lastName"
+                type="text"
+                maxLength={255}
+                value={values.lastName}
+                onChange={handleChange('lastName')}
+                className={fieldClasses('lastName')}
+                placeholder="Doe"
+                aria-invalid={!!errors.lastName} />
+              
+            </div>
+            {errors.lastName &&
+            <p className="mt-1.5 text-xs text-red-600">{errors.lastName}</p>
+            }
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Email address
+          <label
+            htmlFor="middleName"
+            className="block text-sm font-medium text-slate-700 mb-1.5">
+            
+            Middle Name{' '}
+            <span className="text-slate-400 font-normal">(optional)</span>
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <User size={18} className="text-slate-400" />
+            </div>
+            <input
+              id="middleName"
+              type="text"
+              maxLength={255}
+              value={values.middleName}
+              onChange={handleChange('middleName')}
+              className={fieldClasses('middleName')}
+              placeholder="William"
+              aria-invalid={!!errors.middleName} />
+            
+          </div>
+          {errors.middleName &&
+          <p className="mt-1.5 text-xs text-red-600">{errors.middleName}</p>
+          }
+        </div>
+
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-slate-700 mb-1.5">
+            
+            Email Address
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Mail size={18} className="text-slate-400" />
             </div>
             <input
+              id="email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              value={values.email}
+              onChange={handleChange('email')}
+              className={fieldClasses('email')}
               placeholder="you@example.com"
-              required
-            />
+              aria-invalid={!!errors.email} />
+            
           </div>
+          {errors.email &&
+          <p className="mt-1.5 text-xs text-red-600">{errors.email}</p>
+          }
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Phone
+          <label
+            htmlFor="phone"
+            className="block text-sm font-medium text-slate-700 mb-1.5">
+            
+            Phone Number
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Phone size={18} className="text-slate-400" />
+            <div className="absolute inset-y-0 left-0 pl-3 pr-3 flex items-center border-r border-slate-200 pointer-events-none">
+              <span className="text-sm font-medium text-slate-600">
+                {COUNTRY_CODE}
+              </span>
             </div>
             <input
+              id="phone"
               type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-              placeholder="+2348012345678"
-              required
-            />
+              inputMode="numeric"
+              maxLength={50 - COUNTRY_CODE.length}
+              value={values.phone}
+              onChange={handleChange('phone')}
+              className={`${fieldClasses('phone')} !pl-20`}
+              placeholder="801 234 5678"
+              aria-invalid={!!errors.phone} />
+            
           </div>
+          {errors.phone &&
+          <p className="mt-1.5 text-xs text-red-600">{errors.phone}</p>
+          }
         </div>
 
-        {role === 'EMPLOYER' && (
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Company name{' '}
-              <span className="text-slate-400 font-normal">(optional)</span>
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Building2 size={18} className="text-slate-400" />
-              </div>
-              <input
-                type="text"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                placeholder="Acme Ltd"
-              />
-            </div>
-          </div>
-        )}
-
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-slate-700 mb-1.5">
+            
             Password
           </label>
           <div className="relative">
@@ -226,46 +335,81 @@ export function RegisterPage() {
               <Lock size={18} className="text-slate-400" />
             </div>
             <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              value={values.password}
+              onChange={handleChange('password')}
+              className={`${fieldClasses('password')} !pr-11`}
               placeholder="••••••••"
-              minLength={8}
-              required
-            />
+              aria-invalid={!!errors.password} />
+            
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors">
+              
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
+          {errors.password ?
+          <p className="mt-1.5 text-xs text-red-600">{errors.password}</p> :
+
           <p className="mt-1.5 text-xs text-slate-500">
-            Must be at least 8 characters long.
-          </p>
+              Must be at least 8 characters long.
+            </p>
+          }
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            Confirm password
+          <label
+            htmlFor="confirmPassword"
+            className="block text-sm font-medium text-slate-700 mb-1.5">
+            
+            Confirm Password
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Lock size={18} className="text-slate-400" />
             </div>
             <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              id="confirmPassword"
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={values.confirmPassword}
+              onChange={handleChange('confirmPassword')}
+              className={`${fieldClasses('confirmPassword')} !pr-11`}
               placeholder="••••••••"
-              minLength={8}
-              required
-            />
+              aria-invalid={!!errors.confirmPassword} />
+            
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((v) => !v)}
+              aria-label={
+              showConfirmPassword ? 'Hide password' : 'Show password'
+              }
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors">
+              
+              {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
           </div>
+          {errors.confirmPassword &&
+          <p className="mt-1.5 text-xs text-red-600">
+              {errors.confirmPassword}
+            </p>
+          }
         </div>
+
+        {serverError && (
+          <p className="text-sm text-red-600 text-center bg-red-50 border border-red-200 p-3 rounded-xl">
+            {serverError}
+          </p>
+        )}
 
         <button
           type="submit"
-          disabled={isSubmitting}
-          className="w-full flex justify-center items-center gap-2 bg-primary hover:bg-primary-600 disabled:opacity-60 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold transition-all shadow-soft active:scale-[0.98] mt-2">
-          {isSubmitting ? 'Creating account…' : 'Create account'}{' '}
-          <ArrowRight size={18} />
+          disabled={isLoading}
+          className="w-full flex justify-center items-center gap-2 bg-primary hover:bg-primary-600 text-white py-3 rounded-xl font-bold transition-all shadow-soft active:scale-[0.98] mt-2 disabled:opacity-60 disabled:cursor-not-allowed">
+          {isLoading ? 'Creating account...' : <> Create Account <ArrowRight size={18} /> </>}
         </button>
       </form>
 
@@ -284,11 +428,12 @@ export function RegisterPage() {
       <p className="mt-8 text-center text-sm text-slate-600">
         Already have an account?{' '}
         <Link
-          to="/login"
+          to="/auth/login"
           className="font-bold text-primary hover:text-primary-600 transition-colors">
+          
           Sign in
         </Link>
       </p>
-    </motion.div>
-  );
+    </motion.div>);
+
 }

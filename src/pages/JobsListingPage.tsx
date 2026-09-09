@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Search, MapPin, Filter } from 'lucide-react';
+import { Search, Filter } from 'lucide-react';
 import { PaginatedList } from '../components/PaginatedList';
 import { JobCard } from '../components/JobCard';
+import { StateSelect } from '../components/StateSelect';
 import { useAuth } from '../context/AuthContext';
 import { searchJobs } from '../services/jobService';
 import { saveJob, unsaveJob } from '../services/savedJobsService';
@@ -75,14 +76,15 @@ export function JobsListingPage() {
                 className="bg-transparent border-none outline-none w-full text-slate-700 placeholder:text-slate-400"
               />
             </div>
-            <div className="flex-1 flex items-center px-4 py-2">
-              <MapPin className="text-slate-400 mr-3" size={20} />
-              <input
-                type="text"
+            <div className="flex-1 flex items-center px-2">
+              <StateSelect
+                label=""
                 value={stateFilter}
-                onChange={(e) => setStateFilter(e.target.value)}
-                placeholder="State (e.g. Lagos)"
-                className="bg-transparent border-none outline-none w-full text-slate-700 placeholder:text-slate-400"
+                onChange={(name) => {
+                  setStateFilter(name);
+                  setSearchKey((k) => k + 1);
+                }}
+                className="w-full [&_select]:border-none [&_select]:bg-transparent [&_select]:focus:ring-0 [&_select]:text-slate-700"
               />
             </div>
             <button

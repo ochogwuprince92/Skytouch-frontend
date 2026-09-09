@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, MapPin, Globe, ArrowRight, Info } from 'lucide-react';
+import { Building2, Globe, ArrowRight, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { FormAlert } from '../../components/FormAlert';
+import { LocationSelect } from '../../components/LocationSelect';
+import { EnumSelect, INDUSTRY_OPTIONS } from '../../components/EnumSelect';
 import { ApiError } from '../../lib/api';
 import { createCompany } from '../../services/companyService';
 
@@ -11,7 +13,9 @@ export function EmployerOnboardingPage() {
   const [name, setName] = useState('');
   const [industry, setIndustry] = useState('');
   const [website, setWebsite] = useState('');
-  const [address, setAddress] = useState('');
+  const [addressState, setAddressState] = useState('');
+  const [addressLga, setAddressLga] = useState('');
+  const [addressLine, setAddressLine] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,15 +31,31 @@ export function EmployerOnboardingPage() {
 
     setIsSubmitting(true);
     try {
+      const address =
+        [addressLine.trim(), addressLga.trim(), addressState]
+          .filter(Boolean)
+          .join(', ') || undefined;
+
+      // createCompany() returning successfully (201, with the created
+      // company's id in the body) IS the success signal — no need to
+      // re-fetch the employer profile here just to confirm it. The
+      // EmployerOnboardingGuard already re-verifies on the next route
+      // (via its own fresh, path-scoped check) before granting access
+      // to anything under /employer/*.
+      console.log('[ONBOARDING] calling createCompany...');
       await createCompany({
         name: name.trim(),
         industry: industry.trim() || undefined,
         website: website.trim() || undefined,
-        address: address.trim() || undefined,
+        address,
         description: description.trim() || undefined,
       });
-      navigate('/employer/dashboard', { replace: true });
+      console.log('[ONBOARDING] createCompany resolved successfully, about to navigate');
+
+      // Force full page refresh to ensure fresh data fetch from backend
+      window.location.href = '/employer/dashboard';
     } catch (err) {
+      console.log('[ONBOARDING] caught error:', err);
       setError(
         err instanceof ApiError
           ? err.message
@@ -99,31 +119,45 @@ export function EmployerOnboardingPage() {
               Industry{' '}
               <span className="text-slate-400 font-normal">(optional)</span>
             </label>
-            <input
-              type="text"
+            <EnumSelect
               value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-              placeholder="e.g. Fintech"
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              onChange={setIndustry}
+              options={INDUSTRY_OPTIONS}
+              placeholder="Select industry"
+              className="w-full"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              Address{' '}
-              <span className="text-slate-400 font-normal">(optional)</span>
-            </label>
-            <div className="relative">
-              <MapPin
-                size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
+          <LocationSelect
+            stateValue={addressState}
+            onStateChange={setAddressState}
+            stateLabel="State (optional)"
+            countryLabel="Country (optional)"
+          />
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                LGA{' '}
+                <span className="text-slate-400 font-normal">(optional)</span>
+              </label>
               <input
                 type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="e.g. 1 Marina Road, Lagos"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                value={addressLga}
+                onChange={(e) => setAddressLga(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                Street{' '}
+                <span className="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={addressLine}
+                onChange={(e) => setAddressLine(e.target.value)}
+                placeholder="e.g. 1 Marina Road"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>

@@ -45,8 +45,9 @@ export function searchCompanies(
 }
 
 export function getCompany(id: string): Promise<CompanyDetail> {
+  const token = sessionStorage.getItem('skytouch_access_token');
   return apiRequest<CompanyDetail>(`/api/companies/${id}`, {
-    skipAuth: true,
+    skipAuth: !token,
     skipAuthRedirect: true,
   });
 }

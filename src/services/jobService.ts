@@ -52,9 +52,10 @@ export function getCompanyJobs(
   size = 20,
 ): Promise<PaginatedResponse<JobSummary>> {
   const query = buildPageQuery({ page, size });
+  const token = sessionStorage.getItem('skytouch_access_token');
   return apiRequest<PaginatedResponse<JobSummary>>(
     `/api/companies/${companyId}/jobs?${query}`,
-    { skipAuth: true, skipAuthRedirect: true },
+    { skipAuth: !token, skipAuthRedirect: true },
   );
 }
 
@@ -65,7 +66,14 @@ export function listMyJobs(
   size: number,
 ): Promise<PaginatedResponse<JobSummary>> {
   const query = buildPageQuery({ page, size });
-  return apiRequest<PaginatedResponse<JobSummary>>(`/api/jobs/me?${query}`);
+  return apiRequest<PaginatedResponse<JobSummary>>(`/api/jobs/me?${query}`).catch((err) => {
+    // Treat subscription errors as empty result instead of throwing
+    const errorMessage = err instanceof Error ? err.message : 'Failed to load jobs';
+    if (errorMessage.toLowerCase().includes('subscription')) {
+      return { content: [], totalElements: 0, totalPages: 0, size: 0, number: 0 };
+    }
+    throw err;
+  });
 }
 
 export function createJob(data: CreateJobRequest): Promise<JobDetail> {

@@ -27,8 +27,10 @@ export interface ApplicationResponse {
 
 export interface ApplyRequest {
   coverLetter?: string;
+  cvUrl?: string;
 }
 
 export interface UpdateApplicationStatusRequest {
   status: ApplicationStatus;
+  comment?: string;
 }

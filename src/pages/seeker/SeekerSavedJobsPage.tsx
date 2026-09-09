@@ -25,7 +25,7 @@ export function SeekerSavedJobsPage() {
         <h1 className="text-2xl font-bold text-slate-900 mb-1">Saved jobs</h1>
         <p className="text-slate-600">
           Jobs you've bookmarked for later.{' '}
-          <Link to="/jobs" className="text-primary font-semibold hover:underline">
+          <Link to="/seeker/jobs" className="text-primary font-semibold hover:underline">
             Browse more →
           </Link>
         </p>
