@@ -1,5 +1,5 @@
 import { subscriptionApi } from './api';
-import type { UsageResponse, PlanResponse, SubscriptionResponse, SubscribeRequest, UpgradeRequest, ActivateRequest } from '../types/subscription';
+import type { UsageResponse, PlanResponse, SubscriptionResponse, SubscribeRequest, UpgradeRequest } from '../types/subscription';
 
 export async function getSubscriptionUsage(): Promise<UsageResponse> {
   return subscriptionApi.getUsage();
@@ -17,8 +17,8 @@ export async function subscribe(request: SubscribeRequest): Promise<Subscription
   return subscriptionApi.subscribe(request);
 }
 
-export async function activateSubscription(request: ActivateRequest): Promise<SubscriptionResponse> {
-  return subscriptionApi.activate(request);
+export async function activateSubscription(): Promise<SubscriptionResponse> {
+  return subscriptionApi.activate();
 }
 
 export async function upgradeSubscription(request: UpgradeRequest): Promise<SubscriptionResponse> {

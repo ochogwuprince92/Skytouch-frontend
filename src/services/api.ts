@@ -174,11 +174,10 @@ export const subscriptionApi = {
   },
 
   // POST /api/v1/subscriptions/activate
-  activate: async (data: { paymentReference: string }) => {
+  activate: async () => {
     const res = await fetch(`${BASE_URL}/api/v1/subscriptions/activate`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify(data),
     })
     if (!res.ok) throw new Error((await res.json()).message || 'Activation failed')
     return res.json()
@@ -245,15 +244,6 @@ export const paymentApi = {
     return res.json()
   },
 
-  // POST /api/v1/payments/verify-and-activate/{reference}
-  verifyAndActivate: async (reference: string) => {
-    const res = await fetch(`${BASE_URL}/api/v1/payments/verify-and-activate/${reference}`, {
-      method: 'POST',
-      headers: authHeaders(),
-    })
-    if (!res.ok) throw new Error((await res.json()).message || 'Payment verification and activation failed')
-    return res.json()
-  },
 }
 
 // ─── Token storage ───────────────────────────────────────────────────────────

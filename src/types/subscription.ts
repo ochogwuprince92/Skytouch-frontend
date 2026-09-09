@@ -59,7 +59,3 @@ export interface SubscribeRequest {
 export interface UpgradeRequest {
   plan: PlanType;
 }
-
-export interface ActivateRequest {
-  paymentReference: string;
-}
