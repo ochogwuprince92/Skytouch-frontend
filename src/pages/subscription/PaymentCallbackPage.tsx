@@ -6,9 +6,8 @@ import { paymentApi } from '../../services/api';
 export function PaymentCallbackPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState<'loading' | 'verifying' | 'activating' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'verifying' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
-  const [subscriptionDetails, setSubscriptionDetails] = useState<any>(null);
 
   useEffect(() => {
     const reference = searchParams.get('reference');
@@ -27,7 +26,7 @@ export function PaymentCallbackPage() {
       setStatus('verifying');
       setMessage('Verifying payment with Paystack...');
 
-      // Step 1: Verify payment
+      // Verify payment with Paystack
       const verifyResponse = await paymentApi.verifyPayment(reference);
       
       if (!verifyResponse.status || !verifyResponse.data) {
@@ -42,25 +41,13 @@ export function PaymentCallbackPage() {
         return;
       }
 
-      setStatus('activating');
-      setMessage('Activating your subscription...');
-
-      // Step 2: Verify and activate subscription in one call
-      const activateResponse = await paymentApi.verifyAndActivate(reference);
+      setStatus('success');
+      setMessage('Payment successful! Your subscription is being activated.');
       
-      if (activateResponse.status) {
-        setStatus('success');
-        setMessage('Payment successful! Your subscription has been activated.');
-        setSubscriptionDetails(activateResponse.data);
-        
-        // Redirect after 3 seconds
-        setTimeout(() => {
-          navigate('/subscription/current');
-        }, 3000);
-      } else {
-        setStatus('error');
-        setMessage(activateResponse.message || 'Subscription activation failed. Please contact support.');
-      }
+      // Redirect after 3 seconds (webhook handles activation asynchronously)
+      setTimeout(() => {
+        navigate('/subscription/current');
+      }, 3000);
     } catch (err) {
       setStatus('error');
       setMessage(err instanceof Error ? err.message : 'Payment processing failed. Please try again or contact support.');
@@ -94,30 +81,11 @@ export function PaymentCallbackPage() {
           </div>
         )}
 
-        {status === 'activating' && (
-          <div className="text-center">
-            <Loader2 className="w-16 h-16 animate-spin text-primary mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Activating Subscription</h2>
-            <p className="text-slate-600">{message}</p>
-          </div>
-        )}
-
         {status === 'success' && (
           <div className="text-center">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
             <h2 className="text-xl font-bold text-slate-900 mb-2">Payment Successful!</h2>
             <p className="text-slate-600 mb-6">{message}</p>
-            
-            {subscriptionDetails && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 text-left">
-                <p className="text-sm text-green-800 font-semibold mb-2">Subscription Details</p>
-                <p className="text-sm text-green-700">Plan: {subscriptionDetails.plan}</p>
-                <p className="text-sm text-green-700">Status: {subscriptionDetails.status}</p>
-                <p className="text-sm text-green-700">
-                  Expires: {new Date(subscriptionDetails.expiresAt).toLocaleDateString()}
-                </p>
-              </div>
-            )}
             
             <p className="text-sm text-slate-500 mb-4">Redirecting to your subscription page...</p>
             <button
