@@ -58,4 +58,19 @@ export interface SubscribeRequest {
 
 export interface UpgradeRequest {
   plan: PlanType;
+  initializePayment?: boolean;
+  paymentCallbackUrl?: string;
+}
+
+export interface SubscriptionWithPaymentResponse {
+  subscription: SubscriptionResponse;
+  payment: {
+    status: boolean;
+    message: string;
+    data: {
+      authorizationUrl: string;
+      accessCode: string;
+      reference: string;
+    } | null;
+  } | null;
 }

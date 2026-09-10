@@ -10,7 +10,7 @@ export interface PaymentInitializeRequest {
 export interface PaymentInitializeResponse {
   status: boolean;
   message: string;
-  data: PaymentData;
+  data: PaymentData | null;
 }
 
 export interface PaymentData {

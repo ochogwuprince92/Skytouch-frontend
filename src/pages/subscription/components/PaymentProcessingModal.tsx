@@ -19,31 +19,102 @@ export function PaymentProcessingModal({ plan, billingCycle, onClose, onSuccess 
     setError(null);
 
     try {
-      // Step 1: Create subscription
-      const subscription = await subscriptionApi.subscribe({
-        plan: plan.plan,
-        billingCycle,
-      });
-
-      // Step 2: Initialize payment
-      const email = tokenStorage.getEmail() || '';
-      const callbackUrl = `${window.location.origin}/employer/subscription/payment/callback`;
+      // Step 1: Check current subscription status
+      let subscription;
+      let paymentResponse;
       
-      const paymentResponse = await paymentApi.initializePayment({
-        email,
-        amount: plan.price,
-        currency: 'NGN',
-        callbackUrl,
-        metadata: {
-          subscriptionId: subscription.id,
-          plan: plan.plan,
-          description: `${plan.name} Plan Subscription`,
-        },
-      });
+      try {
+        const currentSubscription = await subscriptionApi.getCurrentSubscription();
+        
+        if (currentSubscription && currentSubscription.status === 'ACTIVE') {
+          // Use the new combined upgrade-with-payment endpoint
+          const callbackUrl = `${window.location.origin}/employer/subscription/payment/callback`;
+          const upgradeResponse = await subscriptionApi.upgradeWithPayment({
+            plan: plan.plan,
+            paymentCallbackUrl: callbackUrl,
+          });
+          
+          subscription = upgradeResponse.subscription;
+          paymentResponse = upgradeResponse.payment;
+          
+          if (!paymentResponse || !paymentResponse.data) {
+            // FREE plan upgrade - no payment needed
+            onSuccess();
+            return;
+          }
+        } else if (currentSubscription && currentSubscription.status === 'CANCELLED') {
+          // Re-subscribe with force parameter
+          subscription = await subscriptionApi.subscribe({
+            plan: plan.plan,
+            billingCycle,
+            force: true,
+          });
+          
+          // Initialize payment for the new subscription
+          const email = tokenStorage.getEmail() || '';
+          const callbackUrl = `${window.location.origin}/employer/subscription/payment/callback`;
+          
+          paymentResponse = await paymentApi.initializePayment({
+            email,
+            amount: plan.price,
+            currency: 'NGN',
+            callbackUrl,
+            metadata: {
+              subscriptionId: subscription.id,
+              plan: plan.plan,
+              description: `${plan.name} Plan Subscription`,
+            },
+          });
+        } else {
+          // No subscription or other status - use normal subscribe
+          subscription = await subscriptionApi.subscribe({
+            plan: plan.plan,
+            billingCycle,
+          });
 
-      // Step 3: Redirect to Paystack
+          // Initialize payment
+          const email = tokenStorage.getEmail() || '';
+          const callbackUrl = `${window.location.origin}/employer/subscription/payment/callback`;
+          
+          paymentResponse = await paymentApi.initializePayment({
+            email,
+            amount: plan.price,
+            currency: 'NGN',
+            callbackUrl,
+            metadata: {
+              subscriptionId: subscription.id,
+              plan: plan.plan,
+              description: `${plan.name} Plan Subscription`,
+            },
+          });
+        }
+      } catch (statusError) {
+        // No subscription exists - create new one
+        subscription = await subscriptionApi.subscribe({
+          plan: plan.plan,
+          billingCycle,
+        });
+
+        // Initialize payment
+        const email = tokenStorage.getEmail() || '';
+        const callbackUrl = `${window.location.origin}/employer/subscription/payment/callback`;
+        
+        paymentResponse = await paymentApi.initializePayment({
+          email,
+          amount: plan.price,
+          currency: 'NGN',
+          callbackUrl,
+          metadata: {
+            subscriptionId: subscription.id,
+            plan: plan.plan,
+            description: `${plan.name} Plan Subscription`,
+          },
+        });
+      }
+
+      // Step 2: Redirect to Paystack
       setStep('redirecting');
-      if (paymentResponse.data?.authorizationUrl) {
+      if (paymentResponse?.data?.authorizationUrl) {
         window.location.href = paymentResponse.data.authorizationUrl;
       } else {
         throw new Error('Invalid payment response');

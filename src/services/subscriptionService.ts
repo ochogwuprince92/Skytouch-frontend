@@ -25,6 +25,10 @@ export async function upgradeSubscription(request: UpgradeRequest): Promise<Subs
   return subscriptionApi.upgrade(request);
 }
 
+export async function upgradeSubscriptionWithPayment(request: { plan: string; paymentCallbackUrl?: string }): Promise<{ subscription: SubscriptionResponse; payment: any }> {
+  return subscriptionApi.upgradeWithPayment(request);
+}
+
 export async function cancelSubscription(): Promise<SubscriptionResponse> {
   return subscriptionApi.cancel();
 }

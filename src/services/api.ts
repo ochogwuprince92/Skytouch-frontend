@@ -163,7 +163,7 @@ export const subscriptionApi = {
   },
 
   // POST /api/v1/subscriptions/subscribe
-  subscribe: async (data: { plan: string; billingCycle: string }) => {
+  subscribe: async (data: { plan: string; billingCycle: string; force?: boolean }) => {
     const res = await fetch(`${BASE_URL}/api/v1/subscriptions/subscribe`, {
       method: 'POST',
       headers: authHeaders(),
@@ -201,6 +201,17 @@ export const subscriptionApi = {
       body: JSON.stringify(data),
     })
     if (!res.ok) throw new Error((await res.json()).message || 'Upgrade failed')
+    return res.json()
+  },
+
+  // POST /api/v1/subscriptions/upgrade-with-payment
+  upgradeWithPayment: async (data: { plan: string; paymentCallbackUrl?: string }) => {
+    const res = await fetch(`${BASE_URL}/api/v1/subscriptions/upgrade-with-payment`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) throw new Error((await res.json()).message || 'Upgrade with payment failed')
     return res.json()
   },
 
